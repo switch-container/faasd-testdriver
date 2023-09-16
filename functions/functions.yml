@@ -11,3 +11,7 @@ functions:
     lang: python3
     handler: ./pyaes
     image: defaultlin/pyaes:latest
+  dynamic-html:
+    lang: python3
+    handler: ./dynamic-html
+    image: defaultlin/dynamic-html:latest
