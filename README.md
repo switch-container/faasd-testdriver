@@ -1,0 +1,2 @@
+# faasd-benchmark
+针对fassd开展的基于FunctionBench和SeBS的benchmark
