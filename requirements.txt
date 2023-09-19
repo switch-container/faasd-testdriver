@@ -1,3 +1,5 @@
 pyyaml
 urllib3
 requests
+tqdm
+tabulate
