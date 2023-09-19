@@ -1,6 +1,7 @@
 from time import time
 from os import path
-import cv2                                                                                                                                                                                                                                                                                                                            
+import json
+import cv2
 
 SCRIPT_DIR = path.abspath(path.join(path.dirname(__file__)))
 VIDEO_DIR = path.join(SCRIPT_DIR, 'video')
@@ -33,4 +34,4 @@ def handle(event):
 
     video.release()
     out.release()
-    return {'latency': latency, 'data': OUTPUT_PATH}
+    return json.dumps({'latency': latency, 'data': OUTPUT_PATH})

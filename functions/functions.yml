@@ -15,3 +15,15 @@ functions:
     lang: python3
     handler: ./dynamic-html
     image: defaultlin/dynamic-html:latest
+  image-processing:
+    lang: python3
+    handler: ./image-processing
+    image: defaultlin/image-processing:latest
+  image-recognition:
+    lang: dockerfile
+    handler: ./image-recognition
+    image: defaultlin/image-recognition:latest
+  video-processing:
+    lang: dockerfile
+    handler: ./video-processing
+    image: defaultlin/video-processing:latest

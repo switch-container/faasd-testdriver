@@ -25,4 +25,4 @@ def handle(event):
     html = template.render(username = name, cur_time = cur_time, random_numbers = random_numbers)
 
     latency = time() - start
-    return {'latency': latency, 'data': html}
+    return json.dumps({'latency': latency, 'data': html})

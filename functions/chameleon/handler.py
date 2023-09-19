@@ -40,4 +40,4 @@ def handle(req):
     data = tmpl.render(options=options)
     latency = time() - start
 
-    return {'latency': latency, 'data': data}
+    return json.dumps({'latency': latency, 'data': data})

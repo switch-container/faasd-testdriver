@@ -36,4 +36,4 @@ def handle(event):
 
     latency = time() - start
 
-    return {'latency': latency, 'data': ''}
+    return json.dumps({'latency': latency, 'data': ''})
