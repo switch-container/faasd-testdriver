@@ -1,8 +1,10 @@
-gateway: http://192.168.161.4:8080
+provider:
+  gateway: http://192.168.161.4:8080
+  username: admin
 timeout: 60
 max_retry: 3
-average: 3
-warm_up_count: 3
+average: 1
+warm_up_count: 0
 functions:
   chameleon:
     request_body:

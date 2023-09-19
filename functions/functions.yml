@@ -1,7 +1,6 @@
 version: 1.0
 provider:
   name: openfaas
-  gateway: http://192.168.161.4:8080
 functions:
   chameleon:
     lang: python3

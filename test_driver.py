@@ -1,11 +1,12 @@
-import yaml
+import json
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-import json
+import subprocess
 from time import time
 from tqdm import tqdm
 import tabulate
+import yaml
 
 if __name__ == '__main__':
     # 初始化requests
@@ -26,16 +27,27 @@ if __name__ == '__main__':
         config = yaml.load(f, Loader=yaml.SafeLoader)
     if config is None:
         raise Exception('config.yml is invalid')
-    gateway = config.get('gateway', 'http://localhost:8080')
+    provider = config.get('provider', {})
+    gateway = provider.get('gateway', 'http://localhost:8080')
+    username = provider.get('username', 'admin')
     functions = config.get('functions', [])
     timeout = config.get('timeout', 60)
     max_retry = config.get('max_retry', 3)
     average = config.get('average', 3)
     warm_up_count = config.get('warm_up_count', 3)
+
+    # 登录faas-cli
+    print('Logging in')
+    password = input('Please input faas-cli gateway password:')
+    subprocess.check_call(['faas-cli', 'login', '-g', gateway, '-u', username, '-p', password])
     
-    result = []
+    # 部署函数
+    print('Deploying functions')
+    subprocess.check_call(['faas-cli', 'deploy', '-f', 'functions.yml', '-g', gateway], cwd='functions')
 
     # 测试函数
+    print('Testing functions')
+    result = []
     for function, conf in tqdm(functions.items(), desc='Testing Functions', unit='function', position=0, ncols=80, leave=None, bar_format = "{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}]"):
         request_body = conf.get('request_body')
 
