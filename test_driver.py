@@ -29,11 +29,24 @@ if __name__ == '__main__':
     timeout = config.get('timeout', 60)
     max_retry = config.get('max_retry', 3)
     average = config.get('average', 3)
+    warm_up_count = config.get('warm_up_count', 3)
 
     # 测试函数
     for function, conf in functions.items():
         print(f'Testing {function}')
         request_body = conf.get('request_body')
+
+        # 预热
+        print(f'\tWarming up...')
+        for i in range(warm_up_count):
+            try:
+                http.post(f'{gateway}/function/{function}', json=request_body, timeout=timeout)
+            except Exception as e:
+                print(f'\tError: {e}')
+                continue
+        print(f'\tWarm up completed')
+
+        # 测试
         total_latency = 0
         total_e2e_latency = 0
         for i in range(average):
