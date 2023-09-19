@@ -1,0 +1,23 @@
+gateway: http://192.168.161.4:8080
+timeout: 60
+max_retry: 3
+average: 3
+functions:
+  chameleon:
+    request_body:
+      num_of_rows: 200
+      num_of_cols: 200
+  pyaes:
+    request_body:
+      length_of_message: 1000
+      num_of_iterations: 100
+  dynamic-html:
+    request_body:
+      username: Tsinghua University
+      random_len: 1000
+  image-processing:
+    request_body:
+  image-recognition:
+    request_body:
+  video-processing:
+    request_body:
