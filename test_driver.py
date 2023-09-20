@@ -30,6 +30,7 @@ if __name__ == '__main__':
     provider = config.get('provider', {})
     gateway = provider.get('gateway', 'http://localhost:8080')
     username = provider.get('username', 'admin')
+    password = provider.get('password', None)
     functions = config.get('functions', [])
     timeout = config.get('timeout', 60)
     max_retry = config.get('max_retry', 3)
@@ -49,7 +50,8 @@ if __name__ == '__main__':
 
     # 登录faas-cli
     print('Logging in')
-    password = input('Please input faas-cli gateway password:')
+    if password is None:
+        password = input('Please input faas-cli gateway password:')
     subprocess.check_call(['faas-cli', 'login', '-g', gateway, '-u', username, '-p', password])
     
     # 部署函数
