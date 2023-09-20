@@ -14,12 +14,12 @@ if __name__ == '__main__':
         total=3,
         status_forcelist=[429, 500, 502, 503, 504],
         backoff_factor=1,
-        allowed_methods=["HEAD", "GET", "OPTIONS", "POST"]
+        allowed_methods=['HEAD', 'GET', 'OPTIONS', 'POST']
     )
     adapter = HTTPAdapter(max_retries=retry_strategy)
     http = requests.Session()
-    http.mount("https://", adapter)
-    http.mount("http://", adapter)
+    http.mount('https://', adapter)
+    http.mount('http://', adapter)
 
     # 加载配置文件
     config = None
@@ -36,6 +36,17 @@ if __name__ == '__main__':
     average = config.get('average', 3)
     warm_up_count = config.get('warm_up_count', 3)
 
+    # 检查faas-cli
+    try:
+        subprocess.check_call(['faas-cli', 'version'])
+    except:
+        choice = input('faas-cli not found, do you want to install it? [Y/n] ')
+        if choice == '' or choice.lower() == 'y':
+            subprocess.check_call('curl -sSL https://cli.openfaas.com | sudo sh', shell=True)
+        else:
+            print('Error: faas-cli not found')
+            exit(1)
+
     # 登录faas-cli
     print('Logging in')
     password = input('Please input faas-cli gateway password:')
@@ -48,7 +59,7 @@ if __name__ == '__main__':
     # 测试函数
     print('Testing functions')
     result = []
-    for function, conf in tqdm(functions.items(), desc='Testing Functions', unit='function', position=0, ncols=80, leave=None, bar_format = "{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}]"):
+    for function, conf in tqdm(functions.items(), desc='Testing Functions', unit='function', position=0, ncols=80, leave=None, bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}]'):
         request_body = conf.get('request_body')
 
         # 预热
