@@ -4,10 +4,16 @@
 
 ## Benchmark 版本
 
-本仓库 `functions` 文件夹中包含了以下版本的 FunctionBench 和 SeBS 中的部分函数，并对进行了修改以适配 faasd 的测试：
+本仓库 `functions` 文件夹中包含了以下版本的 FunctionBench 和 SeBS 中的以下函数，并对其进行了修改以适配 faasd 的测试：
 
 - FunctionBench: #cf3e1e9
+  - chameleon
+  - pyaes
+  - image-processing
+  - video-processing
 - SeBS: v1.1
+  - dynamic-html
+  - image-recognition
 
 ## 准备工作
 
