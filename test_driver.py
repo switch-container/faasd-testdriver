@@ -95,7 +95,7 @@ class TestDriver:
             result.append({
                 'Name': function,
                 'Average Latency(ms)': int(total_latency * 1000 / average),
-                'Average E2E Latency(ms)': int(total_e2e_latency * 1000 / average)
+                'Average Other Latencies(ms)': int((total_e2e_latency - total_latency) * 1000 / average)
             })
         
         print('Test completed')
@@ -111,14 +111,14 @@ class TestDriver:
         # 提取函数名和对应的两个指标值
         names = [item['Name'] for item in data]
         avg_latency = [item['Average Latency(ms)'] for item in data]
-        avg_e2e_latency = [item['Average E2E Latency(ms)'] for item in data]
+        avg_other_latency = [item['Average Other Latencies(ms)'] for item in data]
 
         # 设置柱状图的位置
         x = range(len(names))
 
         # 绘制柱状图
-        plt.bar(x, avg_e2e_latency, width=0.4, label='Average End-to-End Latency (ms)')
         plt.bar(x, avg_latency, width=0.4, label='Average Computing Latency (ms)')
+        plt.bar(x, avg_other_latency, width=0.4, label='Average Other Latencies (ms)', bottom=avg_latency)
 
         # 添加标签和标题
         plt.title('Latency Comparison')
