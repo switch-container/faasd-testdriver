@@ -1,4 +1,5 @@
 import json
+import matplotlib.pyplot as plt
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
@@ -73,22 +74,22 @@ class TestDriver:
             # 测试
             total_latency = 0
             total_e2e_latency = 0
-            for i in tqdm(range(average), desc=f'Testing {function}', unit='test', position=1, ncols=80, leave=None):
+            for _ in tqdm(range(average), desc=f'Testing {function}', unit='test', position=1, ncols=80, leave=None):
                 start = time()
                 response = http.post(f'{self.gateway}/function/{function}', json=request_body, timeout=timeout)
                 e2e_latency = time() - start
                 if response.status_code != 200:
-                    raise f'Error: [{response.status_code} {response.reason}] {response.text}'
+                    raise RuntimeError(f'Error: [{response.status_code} {response.reason}] {response.text}')
                 if response.text is None or response.text == '':
-                    raise 'Error: Empty response'
+                    raise RuntimeError('Error: Empty response')
                 start = response.text.find('{')
                 end = response.text.rfind('}')
                 if start == -1 or end == -1:
-                    raise 'Error: Invalid response'
+                    raise RuntimeError('Error: Invalid response')
                 data = json.loads(response.text[start:end+1])
                 latency = data.get('latency')
                 if latency is None:
-                    raise 'Error: Invalid response'
+                    raise RuntimeError('Error: Invalid response')
                 total_latency += latency
                 total_e2e_latency += e2e_latency
             result.append({
@@ -99,4 +100,37 @@ class TestDriver:
         
         print('Test completed')
         print(tabulate.tabulate(result, headers='keys', floatfmt='.3f', numalign='right'))
+
+        # 绘制柱状图
+        self.draw_result(result)
+
         return result
+    
+    @staticmethod
+    def draw_result(data: list[dict]):
+        # 提取函数名和对应的两个指标值
+        names = [item['Name'] for item in data]
+        avg_latency = [item['Average Latency(ms)'] for item in data]
+        avg_e2e_latency = [item['Average E2E Latency(ms)'] for item in data]
+
+        # 设置柱状图的位置
+        x = range(len(names))
+
+        # 绘制柱状图
+        plt.bar(x, avg_e2e_latency, width=0.4, label='Average End-to-End Latency (ms)')
+        plt.bar(x, avg_latency, width=0.4, label='Average Computing Latency (ms)')
+
+        # 添加标签和标题
+        plt.title('Latency Comparison')
+        plt.xlabel('Function Name')
+        plt.ylabel('Latency (ms)')
+
+        # 设置x轴刻度标签
+        plt.xticks(x, names, rotation=30)
+
+        # 添加图例
+        plt.legend()
+
+        # 显示图形
+        plt.subplots_adjust(bottom=0.25)
+        plt.show()
