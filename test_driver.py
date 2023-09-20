@@ -1,6 +1,4 @@
-import argparse
 import json
-import multiprocessing
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
@@ -8,75 +6,50 @@ import subprocess
 from time import time
 from tqdm import tqdm
 import tabulate
-import yaml
 
-# 初始化argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--config', help='config file path (default: config.yml)', default='config.yml')
-parser.add_argument('-p', '--parallel', help=f'Build, push images in parallel to depth specified (default: {multiprocessing.cpu_count()})', type=int, default=multiprocessing.cpu_count())
-parser.add_argument('action', help='action to perform (default: all)', nargs='*', choices=['login', 'logout', 'build', 'push', 'deploy', 'test', 'all'], default='all')
+class TestDriver:
+    def __init__(self, gateway: str):
+        self.gateway = gateway
 
-if __name__ == '__main__':
-    # 解析命令行参数
-    args = parser.parse_args()
-    config_file = args.config
-    parallel = str(args.parallel)
+        # 检查faas-cli
+        try:
+            subprocess.check_call(['faas-cli', 'version'])
+        except:
+            choice = input('faas-cli not found, do you want to install it? [Y/n] ')
+            if choice == '' or choice.lower() == 'y':
+                subprocess.check_call('curl -sSL https://cli.openfaas.com | sudo sh', shell=True)
+            else:
+                print('Error: faas-cli not found')
+                exit(1)
 
-    # 加载配置文件
-    config = None
-    with open(config_file, 'r') as f:
-        config = yaml.load(f, Loader=yaml.SafeLoader)
-    if config is None:
-        raise Exception(f'Error: Config {config_file} is invalid')
-    provider = config.get('provider', {})
-    gateway = provider.get('gateway', 'http://localhost:8080')
-    username = provider.get('username', 'admin')
-    password = provider.get('password', None)
-    functions = config.get('functions', [])
-    timeout = config.get('timeout', 60)
-    max_retry = config.get('max_retry', 3)
-    average = config.get('average', 3)
-    warm_up_count = config.get('warm_up_count', 3)
+    def login(self, username: str, password: str):
+        '''登录faas-cli'''
+        subprocess.check_call(['faas-cli', 'login', '-g', self.gateway, '-u', username, '-p', password])
 
-    # 检查faas-cli
-    try:
-        subprocess.check_call(['faas-cli', 'version'])
-    except:
-        choice = input('faas-cli not found, do you want to install it? [Y/n] ')
-        if choice == '' or choice.lower() == 'y':
-            subprocess.check_call('curl -sSL https://cli.openfaas.com | sudo sh', shell=True)
-        else:
-            print('Error: faas-cli not found')
-            exit(1)
+    def logout(self):
+        '''登出faas-cli'''
+        subprocess.check_call(['faas-cli', 'logout', '-g', self.gateway])
 
-    # 登录faas-cli
-    if 'login' in args.action or 'all' in args.action:
-        print('Logging in')
-        if password is None:
-            password = input('Please input faas-cli gateway password:')
-        subprocess.check_call(['faas-cli', 'login', '-g', gateway, '-u', username, '-p', password])
+    def build(self, parallel: int):
+        '''构建函数镜像'''
+        subprocess.check_call(['faas-cli', 'build', '-f', 'functions.yml', '--parallel', str(parallel)], cwd='functions')
 
-    if 'all' in args.action:
-        print('Building, pushing and deploying functions')
-        subprocess.check_call(['faas-cli', 'up', '-f', 'functions.yml', '--parallel', parallel], cwd='functions')
-    else:
-        # 构建函数
-        if 'build' in args.action:
-            print('Building functions')
-            subprocess.check_call(['faas-cli', 'build', '-f', 'functions.yml', '--parallel', parallel], cwd='functions')
+    def push(self, parallel: int):
+        '''推送函数镜像'''
+        subprocess.check_call(['faas-cli', 'push', '-f', 'functions.yml', '--parallel', str(parallel)], cwd='functions')
 
-        # 推送函数
-        if 'push' in args.action:
-            print('Pushing functions')
-            subprocess.check_call(['faas-cli', 'push', '-f', 'functions.yml', '--parallel', parallel], cwd='functions')
-        
-        # 部署函数
-        if 'deploy' in args.action:
-            print('Deploying functions')
-            subprocess.check_call(['faas-cli', 'deploy', '-f', 'functions.yml', '-g', gateway], cwd='functions')
+    def deploy(self):
+        '''部署函数镜像'''
+        subprocess.check_call(['faas-cli', 'deploy', '-f', 'functions.yml', '-g', self.gateway], cwd='functions')
 
-    # 测试函数
-    if 'test' in args.action or 'all' in args.action:
+    def up(self, parallel: int):
+        '''构建、推送、部署函数镜像'''
+        self.build(parallel)
+        self.push(parallel)
+        self.deploy()
+
+    def test(self, functions: dict, timeout: int, max_retry: int, average: int, warm_up_count: int):
+        '''测试函数'''
         # 初始化requests
         retry_strategy = Retry(
             total=max_retry,
@@ -94,15 +67,15 @@ if __name__ == '__main__':
             request_body = conf.get('request_body')
 
             # 预热
-            for i in tqdm(range(warm_up_count), desc=f'Warming up {function}', unit='warmup', position=1, ncols=80, leave=None):
-                http.post(f'{gateway}/function/{function}', json=request_body, timeout=timeout)
+            for _ in tqdm(range(warm_up_count), desc=f'Warming up {function}', unit='warmup', position=1, ncols=80, leave=None):
+                http.post(f'{self.gateway}/function/{function}', json=request_body, timeout=timeout)
 
             # 测试
             total_latency = 0
             total_e2e_latency = 0
             for i in tqdm(range(average), desc=f'Testing {function}', unit='test', position=1, ncols=80, leave=None):
                 start = time()
-                response = http.post(f'{gateway}/function/{function}', json=request_body, timeout=timeout)
+                response = http.post(f'{self.gateway}/function/{function}', json=request_body, timeout=timeout)
                 e2e_latency = time() - start
                 if response.status_code != 200:
                     raise f'Error: [{response.status_code} {response.reason}] {response.text}'
@@ -126,8 +99,4 @@ if __name__ == '__main__':
         
         print('Test completed')
         print(tabulate.tabulate(result, headers='keys', floatfmt='.3f', numalign='right'))
-
-    # 登出faas-cli
-    if 'logout' in args.action or 'all' in args.action:
-        print('Logging out')
-        subprocess.check_call(['faas-cli', 'logout', '-g', gateway])
+        return result
