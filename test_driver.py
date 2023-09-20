@@ -75,21 +75,34 @@ class TestDriver:
             total_latency = 0
             total_e2e_latency = 0
             for _ in tqdm(range(average), desc=f'Testing {function}', unit='test', position=1, ncols=80, leave=None):
-                start = time()
-                response = http.post(f'{self.gateway}/function/{function}', json=request_body, timeout=timeout)
-                e2e_latency = time() - start
-                if response.status_code != 200:
-                    raise RuntimeError(f'Error: [{response.status_code} {response.reason}] {response.text}')
+                retry_count = 0
+                response = None
+                error = None
+                e2e_latency = 0
+                while response is None and retry_count < max_retry:
+                    start = time()
+                    try:
+                        response = requests.post(f'{self.gateway}/function/{function}', json=request_body, timeout=timeout)
+                        if response.status_code != 200:
+                            raise RuntimeError(f'[{response.status_code} {response.reason}] {response.text}')
+                    except Exception as e:
+                        error = e
+                        retry_count += 1
+                        continue
+                    e2e_latency = time() - start
+                    error = None
+                if error is not None or response is None:
+                    raise RuntimeError(f'Max retry limit exceeded: {error}')
                 if response.text is None or response.text == '':
-                    raise RuntimeError('Error: Empty response')
+                    raise RuntimeError(f'Empty response from {function}')
                 start = response.text.find('{')
                 end = response.text.rfind('}')
                 if start == -1 or end == -1:
-                    raise RuntimeError('Error: Invalid response')
+                    raise RuntimeError(f'Invalid response from {function}')
                 data = json.loads(response.text[start:end+1])
                 latency = data.get('latency')
                 if latency is None:
-                    raise RuntimeError('Error: Invalid response')
+                    raise RuntimeError(f'Invalid response from {function}')
                 total_latency += latency
                 total_e2e_latency += e2e_latency
             result.append({
