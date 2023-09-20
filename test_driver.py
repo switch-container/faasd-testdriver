@@ -16,18 +16,6 @@ parser.add_argument('-c', '--config', help='config file path (default: config.ym
 parser.add_argument('-p', '--parallel', help=f'Build, push images in parallel to depth specified (default: {multiprocessing.cpu_count()})', type=int, default=multiprocessing.cpu_count())
 parser.add_argument('action', help='action to perform (default: all)', nargs='*', choices=['login', 'logout', 'build', 'push', 'deploy', 'test', 'all'], default='all')
 
-# 初始化requests
-retry_strategy = Retry(
-    total=3,
-    status_forcelist=[429, 500, 502, 503, 504],
-    backoff_factor=1,
-    allowed_methods=['HEAD', 'GET', 'OPTIONS', 'POST']
-)
-adapter = HTTPAdapter(max_retries=retry_strategy)
-http = requests.Session()
-http.mount('https://', adapter)
-http.mount('http://', adapter)
-
 if __name__ == '__main__':
     # 解析命令行参数
     args = parser.parse_args()
@@ -89,6 +77,18 @@ if __name__ == '__main__':
 
     # 测试函数
     if 'test' in args.action or 'all' in args.action:
+        # 初始化requests
+        retry_strategy = Retry(
+            total=max_retry,
+            status_forcelist=[429, 500, 502, 503, 504],
+            backoff_factor=1,
+            allowed_methods=['HEAD', 'GET', 'OPTIONS', 'POST']
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        http = requests.Session()
+        http.mount('https://', adapter)
+        http.mount('http://', adapter)
+        
         result = []
         for function, conf in tqdm(functions.items(), desc='Testing Functions', unit='function', position=0, ncols=80, leave=None, bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}]'):
             request_body = conf.get('request_body')

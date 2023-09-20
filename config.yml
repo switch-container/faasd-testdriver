@@ -4,8 +4,8 @@ provider:
   password: yhVekl0sluID2KzzCRgzRERzJnIoiwj2nne20R5RoVYuJo5JllNbU9c96Amttnr
 timeout: 60
 max_retry: 3
-average: 1
-warm_up_count: 0
+average: 3
+warm_up_count: 3
 functions:
   chameleon:
     request_body:
