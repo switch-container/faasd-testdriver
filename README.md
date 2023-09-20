@@ -13,7 +13,8 @@
 
 1. 安装 docker（如需构建镜像）
 2. 部署 faasd
-3. 根据需要修改 `config.yml`、 `functions/functions.yml` 中的配置
+3. 安装 [faas-cli](https://github.com/openfaas/faas-cli)（也可在运行本程序时一并安装）
+4. 根据需要修改 `config.yml`、 `functions/functions.yml` 中的配置
 
 ## 使用方法
 
