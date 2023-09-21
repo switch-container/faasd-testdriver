@@ -24,7 +24,7 @@ def handle(event):
     global idx2label
     model_process_begin = time()
     if model is None:
-        model = resnet50(weights=None)
+        model = resnet50()
         model.load_state_dict(torch.load(MODEL_PATH))
         model.eval()
     if class_idx is None:
