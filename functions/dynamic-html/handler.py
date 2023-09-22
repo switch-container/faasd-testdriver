@@ -13,10 +13,10 @@ from jinja2 import Template
 
 SCRIPT_DIR = path.abspath(path.join(path.dirname(__file__)))
 
-def handle(event):
-    event = json.loads(event)
-    name = event.get('username')
-    size = event.get('random_len')
+def handle(event, context):
+    req = json.loads(event.body.decode())
+    name = req.get('username')
+    size = req.get('random_len')
 
     start = time()
     cur_time = datetime.now()
@@ -25,4 +25,7 @@ def handle(event):
     html = template.render(username = name, cur_time = cur_time, random_numbers = random_numbers)
 
     latency = time() - start
-    return json.dumps({'latency': latency, 'data': html})
+    return {
+        "statusCode": 200,
+        "body":{'latency': latency, 'data': html} 
+    }

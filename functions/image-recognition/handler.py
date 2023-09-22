@@ -18,7 +18,7 @@ class_idx = None
 idx2label = None
 model = None
 
-def handle(event):
+def handle(event, context):
     global model
     global class_idx
     global idx2label
@@ -52,12 +52,15 @@ def handle(event):
 
     model_process_time = (model_process_end - model_process_begin)
     process_time = (process_end - process_begin)
-    return json.dumps({
+    return {
+        "statusCode": 200,
+        "body": {
             'latency': process_time + model_process_time,
             'latencies': {
                 'process_time': process_time,
                 'model_process_time': model_process_time
             },
             'data': {'idx': index.item(), 'class': ret}
-        })
+        }
+    }
 

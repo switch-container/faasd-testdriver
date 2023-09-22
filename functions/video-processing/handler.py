@@ -5,17 +5,17 @@ import cv2
 
 SCRIPT_DIR = path.abspath(path.join(path.dirname(__file__)))
 VIDEO_DIR = path.join(SCRIPT_DIR, 'video')
-VIDEO_PATH = path.join(VIDEO_DIR, 'SampleVideo_1280x720_10mb.mp4')
-OUTPUT_PATH = path.join('/tmp', 'SampleVideo_1280x720_10mb_tmp.mp4')
+VIDEO_PATH = path.join(VIDEO_DIR, 'sample-3s.mp4')
+OUTPUT_PATH = path.join('/tmp', 'sample-gray.mp4')
 
-def handle(event):
+def handle(event, context):
     start = time()
     video = cv2.VideoCapture(VIDEO_PATH)
 
     width = int(video.get(3))
     height = int(video.get(4))
 
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(OUTPUT_PATH, fourcc, 20.0, (width, height))
 
     while video.isOpened():
@@ -34,4 +34,8 @@ def handle(event):
 
     video.release()
     out.release()
-    return json.dumps({'latency': latency, 'data': OUTPUT_PATH})
+    return {
+        "statusCode": 200,
+        "body": {'latency': latency, 'data': OUTPUT_PATH},
+    }
+

@@ -10,7 +10,7 @@ IMAGE_DIR = path.join(SCRIPT_DIR, 'images')
 IMAGE_PATH = path.join(IMAGE_DIR, 'image.jpg')
 IMAGE_NAME = 'image.jpg'
 
-def handle(event):
+def handle(event, context):
     start = time()
     path_list = []
     with Image.open(IMAGE_PATH) as image:
@@ -21,4 +21,10 @@ def handle(event):
         path_list += resize(image, IMAGE_NAME)
 
     latency = time() - start
-    return json.dumps({'latency': latency, 'data': path_list})
+    return {
+        "statusCode": 200,
+        "body": {
+            'latency': latency,
+            'data': path_list
+        }
+    }

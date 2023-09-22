@@ -15,10 +15,10 @@ def generate(length):
     return ''.join(random.choice(letters) for i in range(length))
 
 
-def handle(event):
-    event = json.loads(event)
-    length_of_message = event['length_of_message']
-    num_of_iterations = event['num_of_iterations']
+def handle(event, context):
+    req = json.loads(event.body.decode())
+    length_of_message = req['length_of_message']
+    num_of_iterations = req['num_of_iterations']
 
     message = generate(length_of_message)
 
@@ -36,4 +36,10 @@ def handle(event):
 
     latency = time() - start
 
-    return json.dumps({'latency': latency, 'data': ''})
+    return {
+        "statusCode": 200,
+        "body": {
+            'latency': latency,
+            'data': ''
+        }
+    }

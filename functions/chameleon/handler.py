@@ -22,8 +22,8 @@ tal:content="python: d" />
 </table>""" % six.text_type.__name__
 
 
-def handle(req):
-    req = json.loads(req)
+def handle(event, context):
+    req = json.loads(event.body.decode())
     num_of_rows = req['num_of_rows']
     num_of_cols = req['num_of_cols']
 
@@ -40,4 +40,7 @@ def handle(req):
     data = tmpl.render(options=options)
     latency = time() - start
 
-    return json.dumps({'latency': latency, 'data': data})
+    return {
+        "statusCode": 200,
+        "body":{'latency': latency, 'data': data} 
+    }

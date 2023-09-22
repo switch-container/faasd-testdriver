@@ -3,30 +3,26 @@ provider:
   name: openfaas
 functions:
   chameleon:
-    lang: python3
+    lang: hybrid-py
     handler: ./chameleon
     image: defaultlin/chameleon:latest
   pyaes:
-    lang: python3
+    lang: hybrid-py
     handler: ./pyaes
     image: defaultlin/pyaes:latest
   dynamic-html:
-    lang: python3
+    lang: hybrid-py
     handler: ./dynamic-html
     image: defaultlin/dynamic-html:latest
   image-processing:
-    lang: python3
+    lang: hybrid-py
     handler: ./image-processing
     image: defaultlin/image-processing:latest
   image-recognition:
-    lang: python3-debian
+    lang: hybrid-py
     handler: ./image-recognition
     image: defaultlin/image-recognition:latest
-    build_args:
-      PYTHON_VERSION: 3.10
   video-processing:
-    lang: python3
+    lang: hybrid-py
     handler: ./video-processing
     image: defaultlin/video-processing:latest
-    build_args:
-      ADDITIONAL_PACKAGE: gcc musl-dev g++ ninja linux-headers
