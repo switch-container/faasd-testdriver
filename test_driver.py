@@ -80,7 +80,7 @@ class TestDriver:
                 response = None
                 error = None
                 e2e_latency = 0
-                while response is None and retry_count < max_retry:
+                while (response is None or response.status_code != 200) and retry_count < max_retry:
                     start = time()
                     try:
                         response = requests.post(f'{self.gateway}/function/{function}', json=request_body, timeout=timeout)
