@@ -94,12 +94,11 @@ def format_response(res):
 
     return (body, statusCode, headers)
 
-def monitor_memory(pid, sum, count, interval = 0.01):
+def monitor_memory(pid, max_memory_usage, interval = 0.01):
     while True:
         process = psutil.Process(pid)
-        memory_usage = process.memory_info().rss / (1024 * 1024)  # Convert to MB
-        sum.value += memory_usage
-        count.value += 1
+        memory_usage = process.memory_info().rss / 1024 / 1024  # Convert to MB
+        max_memory_usage.value = max(max_memory_usage, memory_usage)
         time.sleep(interval)
 
 @app.route('/', defaults={'path': ''}, methods=['GET', 'PUT', 'POST', 'PATCH', 'DELETE'])
@@ -110,9 +109,8 @@ def call_handler(path):
 
     # Start memory monitor
     current_pid = psutil.Process().pid
-    sum = multiprocessing.Value('d', 0.0)
-    count = multiprocessing.Value('i', 0)
-    monitor_process = multiprocessing.Process(target=monitor_memory, args=(current_pid, sum, count))
+    max_memory_usage = multiprocessing.Value('d', 0.0)
+    monitor_process = multiprocessing.Process(target=monitor_memory, args=(current_pid, max_memory_usage))
     monitor_process.start()
 
     # Call handler
@@ -120,7 +118,7 @@ def call_handler(path):
 
     # Stop memory monitor
     monitor_process.terminate()
-    response_data['body']['memory_usage'] = sum.value / count.value
+    response_data['body']['memory_usage'] = max_memory_usage.value
     
     res = format_response(response_data)
     return res

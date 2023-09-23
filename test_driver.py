@@ -157,12 +157,12 @@ class TestDriver:
         x = range(len(names))
 
         # Draw bar chart
-        plt.bar(x, data, width=0.4, label='Memory Usage (MB)')
+        plt.bar(x, data, width=0.4, label='Max Memory Usage (MB)')
 
         # Set title, x axis label and y axis label
         plt.title('Memory Usage Comparison')
         plt.xlabel('Function Name')
-        plt.ylabel('Average Memory Usage (MB)')
+        plt.ylabel('Memory Usage (MB)')
 
         # Set x axis scale
         plt.xticks(x, names, rotation=30)
