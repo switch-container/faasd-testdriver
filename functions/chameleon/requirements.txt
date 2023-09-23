@@ -1,5 +1,2 @@
-flask
-waitress
-tox==3.*
 Chameleon
 six

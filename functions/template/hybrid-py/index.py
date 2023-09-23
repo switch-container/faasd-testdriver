@@ -28,6 +28,11 @@ import os
 
 from function import handler
 
+import psutil
+import multiprocessing
+import time
+import gc
+
 app = Flask(__name__)
 
 class Event:
@@ -89,13 +94,33 @@ def format_response(res):
 
     return (body, statusCode, headers)
 
+def monitor_memory(pid, sum, count, interval = 0.01):
+    while True:
+        process = psutil.Process(pid)
+        memory_usage = process.memory_info().rss / (1024 * 1024)  # Convert to MB
+        sum.value += memory_usage
+        count.value += 1
+        time.sleep(interval)
+
 @app.route('/', defaults={'path': ''}, methods=['GET', 'PUT', 'POST', 'PATCH', 'DELETE'])
 @app.route('/<path:path>', methods=['GET', 'PUT', 'POST', 'PATCH', 'DELETE'])
 def call_handler(path):
     event = Event()
     context = Context()
 
+    # Start memory monitor
+    current_pid = psutil.Process().pid
+    sum = multiprocessing.Value('d', 0.0)
+    count = multiprocessing.Value('i', 0)
+    monitor_process = multiprocessing.Process(target=monitor_memory, args=(current_pid, sum, count))
+    monitor_process.start()
+
+    # Call handler
     response_data = handler.handle(event, context)
+
+    # Stop memory monitor
+    monitor_process.terminate()
+    response_data['body']['memory_usage'] = sum.value / count.value
     
     res = format_response(response_data)
     return res

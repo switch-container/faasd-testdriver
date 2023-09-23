@@ -21,14 +21,14 @@ ENV PATH=$PATH:/home/app/.local/bin
 SHELL ["/bin/bash", "-c"]
 WORKDIR /home/app/
 
-COPY --chown=app:app index.py           .
+COPY --chown=app:app index.py requirements.txt           .
 USER app
 
 RUN mkdir -p function
 RUN touch ./function/__init__.py
 WORKDIR /home/app/function/
 COPY --chown=app:app function/requirements.txt	.
-RUN source /home/app/faas/bin/activate && pip install --no-cache-dir -r requirements.txt
+RUN source /home/app/faas/bin/activate && pip install --no-cache-dir -r ../requirements.txt && pip install --no-cache-dir -r requirements.txt
 COPY --chown=app:app function/   .
 
 ##############################################

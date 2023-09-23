@@ -75,6 +75,7 @@ class TestDriver:
             # Perform test
             total_latency = 0
             total_e2e_latency = 0
+            total_memory_usage = 0.0
             for _ in tqdm(range(average), desc=f'Testing {function}', unit='test', position=1, ncols=80, leave=None):
                 retry_count = 0
                 response = None
@@ -96,20 +97,18 @@ class TestDriver:
                     raise RuntimeError(f'Max retry limit exceeded: {error}')
                 if response.text is None or response.text == '':
                     raise RuntimeError(f'Empty response from {function}')
-                start = response.text.find('{')
-                end = response.text.rfind('}')
-                if start == -1 or end == -1:
-                    raise RuntimeError(f'Invalid response from {function}')
-                data = json.loads(response.text[start:end+1])
+                data = response.json()
                 latency = data.get('latency')
                 if latency is None:
                     raise RuntimeError(f'Invalid response from {function}')
                 total_latency += latency
                 total_e2e_latency += e2e_latency
+                total_memory_usage += data.get('memory_usage', 0)
             result.append({
                 'Name': function,
                 'Average Latency(ms)': int(total_latency * 1000 / average),
-                'Average Other Latencies(ms)': int((total_e2e_latency - total_latency) * 1000 / average)
+                'Average Other Latencies(ms)': int((total_e2e_latency - total_latency) * 1000 / average),
+                'Memory Usage(MB)': total_memory_usage / average
             })
         
         print('Test completed')
@@ -117,6 +116,7 @@ class TestDriver:
 
         # Draw result
         self.draw_result(result)
+        self.draw_memory_graph([item['Memory Usage(MB)'] for item in result], [item['Name'] for item in result])
 
         return result
     
@@ -138,7 +138,31 @@ class TestDriver:
         # Set title, x axis label and y axis label
         plt.title('Latency Comparison')
         plt.xlabel('Function Name')
-        plt.ylabel('Latency (ms)')
+        plt.ylabel('Average Latency (ms)')
+
+        # Set x axis scale
+        plt.xticks(x, names, rotation=30)
+
+        # Set legend
+        plt.legend()
+
+        # Show plot
+        plt.subplots_adjust(bottom=0.25)
+        plt.show()
+
+    @staticmethod
+    def draw_memory_graph(data: list[float], names: list[str]):
+        '''Draw memory usage graph'''
+        # Set x axis range
+        x = range(len(names))
+
+        # Draw bar chart
+        plt.bar(x, data, width=0.4, label='Memory Usage (MB)')
+
+        # Set title, x axis label and y axis label
+        plt.title('Memory Usage Comparison')
+        plt.xlabel('Function Name')
+        plt.ylabel('Average Memory Usage (MB)')
 
         # Set x axis scale
         plt.xticks(x, names, rotation=30)
