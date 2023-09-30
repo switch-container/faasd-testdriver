@@ -38,9 +38,7 @@ module.exports = async (event, context) => {
   return context
     .status(200)
     .succeed({
-      body: {
-        latency: latency,
-        data: plaintext,
-      },
+      latency: latency / 1000,
+      data: plaintext,
     });
 };
