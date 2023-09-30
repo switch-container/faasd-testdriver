@@ -20,12 +20,12 @@ def handle(event, context):
     length_of_message = req['length_of_message']
     num_of_iterations = req['num_of_iterations']
 
+    start = time()
     message = generate(length_of_message)
 
     # 128-bit key (16 bytes)
     KEY = b'\xa1\xf6%\x8c\x87}_\xcd\x89dHE8\xbf\xc9,'
 
-    start = time()
     for loops in range(num_of_iterations):
         aes = pyaes.AESModeOfOperationCTR(KEY)
         ciphertext = aes.encrypt(message)

@@ -26,3 +26,7 @@ functions:
     lang: hybrid-py
     handler: ./video-processing
     image: defaultlin/video-processing:latest
+  crypto:
+    lang: hybrid-node18
+    handler: ./crypto
+    image: defaultlin/crypto:latest
