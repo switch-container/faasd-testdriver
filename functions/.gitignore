@@ -1,5 +1,6 @@
 !template
 template/*
 !template/hybrid-py
+!template/hybrid-node18
 build
 .secrets
