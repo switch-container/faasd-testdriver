@@ -2,24 +2,25 @@
 
 # first activate virtual python environment
 import sys, os, traceback
+
 VIRTUALENV_PATH = "./faas"
 
 try:
-  # if the directory 'virtualenv' is extracted out of a zip file
-  path_to_virtualenv = os.path.abspath(VIRTUALENV_PATH)
-  if os.path.isdir(path_to_virtualenv):
-    # activate the virtualenv using activate_this.py contained in the virtualenv
-    activate_this_file = path_to_virtualenv + '/bin/activate_this.py'
-    if os.path.exists(activate_this_file):
-      with open(activate_this_file) as f:
-        code = compile(f.read(), activate_this_file, 'exec')
-        exec(code, dict(__file__=activate_this_file))
-    else:
-      sys.stderr.write("Invalid virtualenv. There does not include 'activate_this.py'.\n")
-      sys.exit(1)
+    # if the directory 'virtualenv' is extracted out of a zip file
+    path_to_virtualenv = os.path.abspath(VIRTUALENV_PATH)
+    if os.path.isdir(path_to_virtualenv):
+        # activate the virtualenv using activate_this.py contained in the virtualenv
+        activate_this_file = path_to_virtualenv + "/bin/activate_this.py"
+        if os.path.exists(activate_this_file):
+            with open(activate_this_file) as f:
+                code = compile(f.read(), activate_this_file, "exec")
+                exec(code, dict(__file__=activate_this_file))
+        else:
+            sys.stderr.write("Invalid virtualenv. There does not include 'activate_this.py'.\n")
+            sys.exit(1)
 except Exception:
-  traceback.print_exc(file=sys.stderr, limit=0)
-  sys.exit(1)
+    traceback.print_exc(file=sys.stderr, limit=0)
+    sys.exit(1)
 
 
 from flask import Flask, request, jsonify
@@ -28,12 +29,8 @@ import os
 
 from function import handler
 
-import psutil
-import multiprocessing
-import time
-import gc
-
 app = Flask(__name__)
+
 
 class Event:
     def __init__(self):
@@ -43,48 +40,54 @@ class Event:
         self.query = request.args
         self.path = request.path
 
+
 class Context:
     def __init__(self):
-        self.hostname = os.getenv('HOSTNAME', 'localhost')
+        self.hostname = os.getenv("HOSTNAME", "localhost")
+
 
 def format_status_code(res):
-    if 'statusCode' in res:
-        return res['statusCode']
-    
+    if "statusCode" in res:
+        return res["statusCode"]
+
     return 200
 
-def format_body(res, content_type):
-    if content_type == 'application/octet-stream':
-        return res['body']
 
-    if 'body' not in res:
+def format_body(res, content_type):
+    if content_type == "application/octet-stream":
+        return res["body"]
+
+    if "body" not in res:
         return ""
-    elif type(res['body']) == dict:
-        return jsonify(res['body'])
+    elif type(res["body"]) == dict:
+        return jsonify(res["body"])
     else:
-        return str(res['body'])
+        return str(res["body"])
+
 
 def format_headers(res):
-    if 'headers' not in res:
+    if "headers" not in res:
         return []
-    elif type(res['headers']) == dict:
+    elif type(res["headers"]) == dict:
         headers = []
-        for key in res['headers'].keys():
-            header_tuple = (key, res['headers'][key])
+        for key in res["headers"].keys():
+            header_tuple = (key, res["headers"][key])
             headers.append(header_tuple)
         return headers
-    
-    return res['headers']
+
+    return res["headers"]
+
 
 def get_content_type(res):
     content_type = ""
-    if 'headers' in res:
-        content_type = res['headers'].get('Content-type', '')
+    if "headers" in res:
+        content_type = res["headers"].get("Content-type", "")
     return content_type
+
 
 def format_response(res):
     if res == None:
-        return ('', 200)
+        return ("", 200)
 
     statusCode = format_status_code(res)
     content_type = get_content_type(res)
@@ -94,34 +97,20 @@ def format_response(res):
 
     return (body, statusCode, headers)
 
-def monitor_memory(pid, max_memory_usage, interval = 0.01):
-    while True:
-        process = psutil.Process(pid)
-        memory_usage = process.memory_info().rss / 1024 / 1024  # Convert to MB
-        max_memory_usage.value = max(max_memory_usage, memory_usage)
-        time.sleep(interval)
 
-@app.route('/', defaults={'path': ''}, methods=['GET', 'PUT', 'POST', 'PATCH', 'DELETE'])
-@app.route('/<path:path>', methods=['GET', 'PUT', 'POST', 'PATCH', 'DELETE'])
+@app.route("/", defaults={"path": ""}, methods=["GET", "PUT", "POST", "PATCH", "DELETE"])
+@app.route("/<path:path>", methods=["GET", "PUT", "POST", "PATCH", "DELETE"])
 def call_handler(path):
     event = Event()
     context = Context()
 
-    # Start memory monitor
-    current_pid = psutil.Process().pid
-    max_memory_usage = multiprocessing.Value('d', 0.0)
-    monitor_process = multiprocessing.Process(target=monitor_memory, args=(current_pid, max_memory_usage))
-    monitor_process.start()
-
     # Call handler
     response_data = handler.handle(event, context)
 
-    # Stop memory monitor
-    monitor_process.terminate()
-    response_data['body']['memory_usage'] = max_memory_usage.value
-    
     res = format_response(response_data)
     return res
 
-if __name__ == '__main__':
-    serve(app, host='0.0.0.0', port=5000)
+
+if __name__ == "__main__":
+    port = os.environ.get("upstream_port", 5000)
+    serve(app, host="0.0.0.0", port=port)

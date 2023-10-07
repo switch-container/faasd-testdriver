@@ -1,5 +1,5 @@
 provider:
-  gateway: http://192.168.161.4:8080
+  gateway: http://127.0.0.1:8081
   username: admin
   password: yhVekl0sluID2KzzCRgzRERzJnIoiwj2nne20R5RoVYuJo5JllNbU9c96Amttnr
 timeout: 60
@@ -25,7 +25,7 @@ functions:
     request_body:
   video-processing:
     request_body:
-  crypto:
-    request_body:
-      length_of_message: 1000
-      num_of_iterations: 10000
+      #  crypto:
+      #request_body:
+      #length_of_message: 1000
+      #num_of_iterations: 10000

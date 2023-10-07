@@ -63,11 +63,14 @@ WORKDIR /home/app/
 
 USER app
 
+ARG UPSTREAM_PORT=5000
+
 # Set up of-watchdog for HTTP mode
 ENV fprocess="python index.py"
 ENV cgi_headers="true"
 ENV mode="http"
-ENV upstream_url="http://127.0.0.1:5000"
+ENV upstream_url="http://127.0.0.1:${UPSTREAM_PORT}"
+ENV upstream_port=${UPSTREAM_PORT}
 
 HEALTHCHECK --interval=5s CMD [ -e /tmp/.lock ] || exit 1
 
