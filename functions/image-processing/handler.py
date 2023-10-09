@@ -1,7 +1,6 @@
 from os import path
 from time import time
 from PIL import Image
-import json
 
 from .ops import *
 

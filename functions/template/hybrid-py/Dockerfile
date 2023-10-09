@@ -21,7 +21,7 @@ ENV PATH=$PATH:/home/app/.local/bin
 SHELL ["/bin/bash", "-c"]
 WORKDIR /home/app/
 
-COPY --chown=app:app index.py requirements.txt           .
+COPY --chown=app:app index.py requirements.txt           ./
 USER app
 
 RUN mkdir -p function

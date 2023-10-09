@@ -29,3 +29,5 @@ functions:
     request_body:
       length_of_message: 1000
       num_of_iterations: 10000
+  image-flip-rotate:
+    request_body:
