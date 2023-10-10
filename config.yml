@@ -6,25 +6,34 @@ timeout: 60
 max_retry: 3
 average: 3
 warm_up_count: 3
+peek_period: 10
+cycle_period: 90
+cycle_num: 6
 functions:
   chameleon:
     request_body:
       num_of_rows: 200
       num_of_cols: 200
+    max_concurrency: 160
   pyaes:
     request_body:
       length_of_message: 1000
       num_of_iterations: 100
+    max_concurrency: 100
   dynamic-html:
     request_body:
       username: Tsinghua University
       random_len: 1000
+    max_concurrency: 200
   image-processing:
     request_body:
+    max_concurrency: 50
   image-recognition:
     request_body:
+    max_concurrency: 35
   video-processing:
     request_body:
+    max_concurrency: 25
       #  crypto:
       #request_body:
       #length_of_message: 1000

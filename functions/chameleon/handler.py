@@ -23,11 +23,11 @@ tal:content="python: d" />
 
 
 def handle(event, context):
+    start = time()
     req = json.loads(event.body.decode())
     num_of_rows = req['num_of_rows']
     num_of_cols = req['num_of_cols']
 
-    start = time()
     tmpl = PageTemplate(BIGTABLE_ZPT)
 
     data = {}

@@ -88,9 +88,9 @@ class TestDriver:
                     timeout=self.timeout,
                 )
                 if response.status_code != 200:
-                    print(f"invoke {lambda_name} try {retry_count}th failed: {response.text}")
                     raise RuntimeError(f"[{response.status_code} {response.reason}] {response.text}")
             except Exception as e:
+                print(f"invoke {lambda_name} try {retry_count}th failed: {e}")
                 error = e
                 gevent.sleep(0.5 * (2**retry_count))
                 retry_count += 1
@@ -106,15 +106,19 @@ class TestDriver:
         latency = data.get("latency")
         if latency is None:
             raise RuntimeError(f"Invalid response from {lambda_name}")
-        res = {"e2e_latency": e2e_latency, "latency": latency, "data": data}
-        print(lambda_name, {"e2e_latency": e2e_latency, "latency": latency}, sep=" ")
+        res = {"e2e_latency": e2e_latency, "latency": latency, "data": data, "retry_count": retry_count}
+        if "recognition" in lambda_name:
+            print(lambda_name, res)
+        else:
+            print(lambda_name, {"e2e_latency": e2e_latency, "latency": latency, "retry_count": retry_count}, sep=" ")
         return res
 
     def test(self, workloads: Dict[str, List[int]], functions: dict):
         """Test functions"""
         jobs = {}
-        e2e_latency = {}
-        latency = {}
+        all_e2e_latency = {}
+        all_latency = {}
+        all_startup_latency = {}
         for func, arrival_invokes in workloads.items():
             func_jobs = []
             conf = functions[func]
@@ -126,12 +130,18 @@ class TestDriver:
             jobs[func] = func_jobs
         gevent.joinall(sum(jobs.values(), []), timeout=700)
         for func, gs in jobs.items():
-            e2e_latency[func] = [g.get()["e2e_latency"] for g in gs]
-            latency[func] = [g.get()["latency"] for g in gs]
+            e2e_latency = [g.get()["e2e_latency"] for g in gs]
+            latency = [g.get()["latency"] for g in gs]
+            startup_latency = [(x - y) * 1000 for x, y in zip(e2e_latency, latency)]
+            
+            all_e2e_latency[func] = e2e_latency
+            all_latency[func] = latency
+            all_startup_latency[func] = startup_latency
 
         # Draw result
-        self.draw_result(e2e_latency, "e2e_latency")
-        self.draw_result(latency, "latency")
+        self.draw_result(all_e2e_latency, "e2e_latency")
+        self.draw_result(all_latency, "latency")
+        self.draw_result(all_startup_latency, "startup_latency")
 
     @staticmethod
     def draw_result(data: Dict[str, List[float]], label: str):

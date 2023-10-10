@@ -2,38 +2,44 @@ import random
 import argparse
 import yaml
 import json
-from typing import List
 
 random.seed(2022310806)
-PEEK_CONCURRENCY = 40
-PEEK_PERIOD = 15  # seconds
-CYCLE_PERIOD = 120  # seconds
-TOTAL_TIME = 240  # seconds
 
 
-def workload_1(conf: List[str], T: int, cycle_num: int):
+def workload_1(config: dict):
     """
-    :param cache_time: cache time of container in seconds
-    :param T: the period of the cycle for burst request (a little longer than cache time)
-    :param cycle_num: the number of cycles to generate
+    :param config: parsed dict from config.yml
     """
+
+    # each funtion will busrt in one peek_period in one cycle_period
+    # so for workload 1: the cycle_period should > faasd containerd cache duration
+    functions = config["functions"]
+    peek_period = config.get("peek_period", 15)
+    cycle_period = config.get("cycle_period", 90)
+    cycle_num = config.get("cycle_num", 6)
+
+    peak_start_array = list(range(cycle_period // peek_period))
+    random.shuffle(peak_start_array)
+
     res = {}
-    for func in conf:
+    for func_name in functions:
         # run multiple instance in 10s
         arrival_invokes = []
-        peak_start = PEEK_PERIOD * random.randint(0, (T // PEEK_PERIOD) - 1)
-        print(f"{func} peak start is at {peak_start}")
+        func = functions[func_name]
+        peek_concurrency = func.get("max_concurrency", 40)
+        peak_start = peak_start_array.pop(0) * peek_period
+        print(f"{func_name} peak start is at {peak_start} peek concurrency is {peek_concurrency}")
         for _ in range(cycle_num):
-            left = PEEK_CONCURRENCY
-            for t in range(T):
+            left = peek_concurrency
+            for t in range(cycle_period):
                 num = 0
                 if t >= peak_start:
-                    num = abs(random.normalvariate(PEEK_CONCURRENCY // PEEK_PERIOD, 5))
+                    num = abs(random.normalvariate(peek_concurrency // peek_period, 5))
                     num = min(int(num), left)
                 arrival_invokes.append(num)
                 left -= num
-        res[func] = arrival_invokes
-        print(f"length of arrival_invokes {len(arrival_invokes)}")
+        assert len(arrival_invokes) == cycle_period * cycle_num
+        res[func_name] = arrival_invokes
     return res
 
 
@@ -48,7 +54,6 @@ if __name__ == "__main__":
     if config is None:
         raise Exception(f"Error: Config {args.config} is invalid")
 
-    functions = config.get("functions", None)
-    res = workload_1(list(functions.keys()), CYCLE_PERIOD, TOTAL_TIME // CYCLE_PERIOD)
+    res = workload_1(config)
     with open("workload_1.json", "w") as f:
         json.dump(res, f, indent=2)

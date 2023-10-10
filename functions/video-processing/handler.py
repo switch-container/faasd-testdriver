@@ -30,10 +30,10 @@ def handle(event, context):
         else:
             break
 
-    latency = time() - start
-
     video.release()
     out.release()
+
+    latency = time() - start
     return {
         "statusCode": 200,
         "body": {'latency': latency, 'data': OUTPUT_PATH},

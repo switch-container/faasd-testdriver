@@ -16,11 +16,11 @@ def generate(length):
 
 
 def handle(event, context):
+    start = time()
     req = json.loads(event.body.decode())
     length_of_message = req['length_of_message']
     num_of_iterations = req['num_of_iterations']
 
-    start = time()
     message = generate(length_of_message)
 
     # 128-bit key (16 bytes)

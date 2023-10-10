@@ -1,4 +1,4 @@
-FROM --platform=${TARGETPLATFORM:-linux/amd64} ghcr.io/openfaas/of-watchdog:0.9.10 as watchdog
+FROM jialianghuang/of-watchdog as watchdog
 FROM jialianghuang/hybrid as build
 
 COPY --from=watchdog /fwatchdog /usr/bin/fwatchdog
