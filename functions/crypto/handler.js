@@ -13,11 +13,12 @@ function generate(length) {
 }
 
 module.exports = async (event, context) => {
+  const start = Date.now();
+
   const req = typeof event.body === "object" ? event.body : JSON.parse(event.body);
   const lengthOfMessage = req.length_of_message;
   const numOfIterations = req.num_of_iterations;
 
-  const start = Date.now();
   const message = generate(lengthOfMessage);
 
   // 128-bit key (16 bytes)

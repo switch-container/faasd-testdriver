@@ -1,4 +1,4 @@
-FROM --platform=${TARGETPLATFORM:-linux/amd64} ghcr.io/openfaas/of-watchdog:0.9.10 as watchdog
+FROM jialianghuang/of-watchdog as watchdog
 FROM jialianghuang/hybrid as build
 
 COPY --from=watchdog /fwatchdog /usr/bin/fwatchdog
@@ -64,11 +64,14 @@ WORKDIR /home/app/
 
 USER app
 
+ARG UPSTREAM_PORT=3000
+
 # Set up of-watchdog for HTTP mode
 ENV fprocess="node index.js"
 ENV cgi_headers="true"
 ENV mode="http"
-ENV upstream_url="http://127.0.0.1:3000"
+ENV upstream_url="http://127.0.0.1:${UPSTREAM_PORT}"
+ENV upstream_port=${UPSTREAM_PORT}
 
 ENV exec_timeout="10s"
 ENV write_timeout="15s"

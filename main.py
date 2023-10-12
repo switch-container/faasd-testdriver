@@ -1,6 +1,7 @@
 import argparse
 import yaml
 import json
+import math
 
 from test_driver import TestDriver
 
@@ -24,4 +25,7 @@ if __name__ == "__main__":
     with open("workload_1.json", "r") as f:
         workloads = json.load(f)
 
-    test_driver.test(workloads, config["functions"])
+    total_timeout = config["cycle_num"] * config["cycle_period"] * 1.2
+    total_timeout = math.ceil(total_timeout)
+    print(f"total_timeout {total_timeout}")
+    test_driver.test(workloads, config["functions"], total_timeout)

@@ -12,6 +12,7 @@ import subprocess
 from time import time
 import random
 from typing import Dict, List
+import re
 
 
 class TestDriver:
@@ -113,7 +114,7 @@ class TestDriver:
             print(lambda_name, {"e2e_latency": e2e_latency, "latency": latency, "retry_count": retry_count}, sep=" ")
         return res
 
-    def test(self, workloads: Dict[str, List[int]], functions: dict):
+    def test(self, workloads: Dict[str, List[int]], functions: dict, total_timeout: int):
         """Test functions"""
         jobs = {}
         all_e2e_latency = {}
@@ -128,20 +129,102 @@ class TestDriver:
                     g = gevent.spawn_later(t + random.random(), self.invoke, func, request_body)
                     func_jobs.append(g)
             jobs[func] = func_jobs
-        gevent.joinall(sum(jobs.values(), []), timeout=700)
+        gevent.joinall(sum(jobs.values(), []), timeout=total_timeout)
+
+        startup_latencies = self.get_start_up_latency()
+        print("startup_latencies: ", startup_latencies)
         for func, gs in jobs.items():
             e2e_latency = [g.get()["e2e_latency"] for g in gs]
             latency = [g.get()["latency"] for g in gs]
-            startup_latency = [(x - y) * 1000 for x, y in zip(e2e_latency, latency)]
-            
+
             all_e2e_latency[func] = e2e_latency
             all_latency[func] = latency
-            all_startup_latency[func] = startup_latency
+
+            if func not in startup_latencies:
+                print(f"find {func} in /system/metrics failed")
+                return
+            all_startup_latency[func] = startup_latencies[func]
+        print("final startup latency: ", all_startup_latency)
 
         # Draw result
         self.draw_result(all_e2e_latency, "e2e_latency")
         self.draw_result(all_latency, "latency")
-        self.draw_result(all_startup_latency, "startup_latency")
+        self.draw_result(all_startup_latency, "start_latency")
+
+    def get_start_up_latency(self):
+        try:
+            response = requests.get(
+                f"{self.gateway}/system/metrics",
+                timeout=self.timeout,
+            )
+            if response.status_code != 200:
+                raise RuntimeError(f"[{response.status_code} {response.reason}] {response.text}")
+        except Exception as e:
+            print(f"request for /system/metrics failed: {e}")
+            return {}
+        else:
+            start_latency = self.parse_latency_metric(response.text, "switch-latency")
+            cold_start_latency = self.parse_latency_metric(response.text, "cold-start-latency")
+            reuse_counter = self.parse_counter_metric(response.text, "reuse-count")
+
+            for func, reuse_num in reuse_counter.items():
+                if func not in start_latency:
+                    start_latency[func] = []
+                start_latency[func] += [0] * reuse_num
+
+            for func, latency in cold_start_latency.items():
+                if func not in start_latency:
+                    start_latency[func] = []
+                start_latency[func] += latency
+            return start_latency
+
+    @staticmethod
+    def parse_latency_metric(response_text: str, metric_name: str):
+        """
+        :param response_text: the response from request to /system/metrics
+        :param metric_name: the metric name
+
+        Return a dict with pattern: function_name -> List[latency_in_ms]
+        """
+        m = re.search(r"latency metric {}: (.*)$".format(metric_name), response_text, re.M)
+        if m is None:
+            print(f"parse latency metric failed {metric_name}")
+            return {}
+        pairs = re.findall(r"(.*?) -> \[(.*?)\]", m.group(1), re.M)
+        res = {}
+        for name, duration in pairs:
+            name = name.strip()
+            elapsed = []
+            for x in duration.split(" "):
+                if x.endswith("ms"):
+                    elapsed.append(float(x.strip("ms")))
+                elif x.endswith("µs"):
+                    elapsed.append(float(x.strip("µs")) / 1000)
+                elif x.endswith("s"):
+                    elapsed.append(float(x.strip("s")) * 1000)
+                else:
+                    raise RuntimeError(f"unknown suffix: {x}")
+            res[name] = elapsed
+        return res
+
+    @staticmethod
+    def parse_counter_metric(response_text: str, metric_name: str):
+        """
+        :param response_text: the response from request to /system/metrics
+        :param metric_name: the metric name
+
+        Return a dict with pattern: function_name -> List[latency_in_ms]
+        """
+        m = re.search(r"find grained counter metric {}: (.*)$".format(metric_name), response_text, re.M)
+        if m is None:
+            print(f"parse latency metric failed {metric_name}")
+            return {}
+        pairs = re.findall(r"([^ ]*?) -> (\d+)", m.group(1), re.M)
+        res = {}
+        for name, val in pairs:
+            name = name.strip()
+            res[name] = int(val)
+        return res
 
     @staticmethod
     def draw_result(data: Dict[str, List[float]], label: str):

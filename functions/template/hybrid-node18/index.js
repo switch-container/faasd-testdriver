@@ -4,157 +4,135 @@
 
 "use strict";
 
-const process = require("process");
-const { Worker, isMainThread, workerData } = require("node:worker_threads");
+const express = require("express");
+const app = express();
+const handler = require("./function/handler");
+const bodyParser = require("body-parser");
 
-if (isMainThread) {
-  const express = require("express");
-  const app = express();
-  const handler = require("./function/handler");
-  const bodyParser = require("body-parser");
+const defaultMaxSize = "100kb"; // body-parser default
 
-  const defaultMaxSize = "100kb"; // body-parser default
+app.disable("x-powered-by");
 
-  app.disable("x-powered-by");
+const rawLimit = process.env.MAX_RAW_SIZE || defaultMaxSize;
+const jsonLimit = process.env.MAX_JSON_SIZE || defaultMaxSize;
 
-  const rawLimit = process.env.MAX_RAW_SIZE || defaultMaxSize;
-  const jsonLimit = process.env.MAX_JSON_SIZE || defaultMaxSize;
+app.use(function addDefaultContentType(req, res, next) {
+  // When no content-type is given, the body element is set to
+  // nil, and has been a source of contention for new users.
 
-  app.use(function addDefaultContentType(req, res, next) {
-    // When no content-type is given, the body element is set to
-    // nil, and has been a source of contention for new users.
-
-    if (!req.headers["content-type"]) {
-      req.headers["content-type"] = "text/plain";
-    }
-    next();
-  });
-
-  if (process.env.RAW_BODY === "true") {
-    app.use(bodyParser.raw({ type: "*/*", limit: rawLimit }));
-  } else {
-    app.use(bodyParser.text({ type: "text/*" }));
-    app.use(bodyParser.json({ limit: jsonLimit }));
-    app.use(bodyParser.urlencoded({ extended: true }));
+  if (!req.headers["content-type"]) {
+    req.headers["content-type"] = "text/plain";
   }
+  next();
+});
 
-  const isArray = (a) => {
-    return !!a && a.constructor === Array;
-  };
-
-  const isObject = (a) => {
-    return !!a && a.constructor === Object;
-  };
-
-  class FunctionEvent {
-    constructor(req) {
-      this.body = req.body;
-      this.headers = req.headers;
-      this.method = req.method;
-      this.query = req.query;
-      this.path = req.path;
-    }
-  }
-
-  class FunctionContext {
-    constructor(cb) {
-      this.statusCode = 200;
-      this.cb = cb;
-      this.headerValues = {};
-      this.cbCalled = 0;
-    }
-
-    status(statusCode) {
-      if (!statusCode) {
-        return this.statusCode;
-      }
-
-      this.statusCode = statusCode;
-      return this;
-    }
-
-    headers(value) {
-      if (!value) {
-        return this.headerValues;
-      }
-
-      this.headerValues = value;
-      return this;
-    }
-
-    succeed(value) {
-      let err;
-      this.cbCalled++;
-      this.cb(err, value);
-    }
-
-    fail(value) {
-      let message;
-      if (this.status() == "200") {
-        this.status(500);
-      }
-
-      this.cbCalled++;
-      this.cb(value, message);
-    }
-  }
-
-  const middleware = async (req, res) => {
-    const sharedBuffer = new SharedArrayBuffer(4); // 创建一个4字节的共享内存
-    const maxMemoryUsage = new Uint32Array(sharedBuffer); // 使用Uint32Array访问共享内存
-    const worker = new Worker(__filename, { workerData: maxMemoryUsage });
-
-    const cb = (err, functionResult) => {
-      worker.terminate();
-      const maxMemoryUsageMB = Atomics.load(maxMemoryUsage, 0) / 1024 / 1024;
-
-      if (err) {
-        console.error(err);
-
-        return res.status(fnContext.status()).send(err.toString ? err.toString() : err);
-      }
-
-      if (isArray(functionResult) || isObject(functionResult)) {
-        functionResult["memory_usage"] = maxMemoryUsageMB;
-        res.set(fnContext.headers()).status(fnContext.status()).send(JSON.stringify(functionResult));
-      } else {
-        res.set(fnContext.headers()).status(fnContext.status()).send(functionResult);
-      }
-    };
-
-    const fnEvent = new FunctionEvent(req);
-    const fnContext = new FunctionContext(cb);
-
-    Promise.resolve(handler(fnEvent, fnContext, cb))
-      .then((res) => {
-        if (!fnContext.cbCalled) {
-          fnContext.succeed(res);
-        }
-      })
-      .catch((e) => {
-        cb(e);
-      });
-  };
-
-  app.post("/*", middleware);
-  app.get("/*", middleware);
-  app.patch("/*", middleware);
-  app.put("/*", middleware);
-  app.delete("/*", middleware);
-  app.options("/*", middleware);
-
-  const port = process.env.http_port || 3000;
-
-  app.listen(port, () => {
-    console.log(`node18 listening on port: ${port}`);
-  });
+if (process.env.RAW_BODY === "true") {
+  app.use(bodyParser.raw({ type: "*/*", limit: rawLimit }));
 } else {
-  const maxMemoryUsage = workerData;
-
-  setInterval(() => {
-    const currentMemoryUsage = process.memoryUsage().rss;
-    if (currentMemoryUsage > Atomics.load(maxMemoryUsage, 0)) {
-      Atomics.store(maxMemoryUsage, 0, currentMemoryUsage);
-    }
-  }, 10);
+  app.use(bodyParser.text({ type: "text/*" }));
+  app.use(bodyParser.json({ limit: jsonLimit }));
+  app.use(bodyParser.urlencoded({ extended: true }));
 }
+
+const isArray = (a) => {
+  return !!a && a.constructor === Array;
+};
+
+const isObject = (a) => {
+  return !!a && a.constructor === Object;
+};
+
+class FunctionEvent {
+  constructor(req) {
+    this.body = req.body;
+    this.headers = req.headers;
+    this.method = req.method;
+    this.query = req.query;
+    this.path = req.path;
+  }
+}
+
+class FunctionContext {
+  constructor(cb) {
+    this.statusCode = 200;
+    this.cb = cb;
+    this.headerValues = {};
+    this.cbCalled = 0;
+  }
+
+  status(statusCode) {
+    if (!statusCode) {
+      return this.statusCode;
+    }
+
+    this.statusCode = statusCode;
+    return this;
+  }
+
+  headers(value) {
+    if (!value) {
+      return this.headerValues;
+    }
+
+    this.headerValues = value;
+    return this;
+  }
+
+  succeed(value) {
+    let err;
+    this.cbCalled++;
+    this.cb(err, value);
+  }
+
+  fail(value) {
+    let message;
+    if (this.status() == "200") {
+      this.status(500);
+    }
+
+    this.cbCalled++;
+    this.cb(value, message);
+  }
+}
+
+const middleware = async (req, res) => {
+  const cb = (err, functionResult) => {
+    if (err) {
+      console.error(err);
+
+      return res.status(fnContext.status()).send(err.toString ? err.toString() : err);
+    }
+
+    if (isArray(functionResult) || isObject(functionResult)) {
+      res.set(fnContext.headers()).status(fnContext.status()).send(JSON.stringify(functionResult));
+    } else {
+      res.set(fnContext.headers()).status(fnContext.status()).send(functionResult);
+    }
+  };
+
+  const fnEvent = new FunctionEvent(req);
+  const fnContext = new FunctionContext(cb);
+
+  Promise.resolve(handler(fnEvent, fnContext, cb))
+    .then((res) => {
+      if (!fnContext.cbCalled) {
+        fnContext.succeed(res);
+      }
+    })
+    .catch((e) => {
+      cb(e);
+    });
+};
+
+app.post("/*", middleware);
+app.get("/*", middleware);
+app.patch("/*", middleware);
+app.put("/*", middleware);
+app.delete("/*", middleware);
+app.options("/*", middleware);
+
+const port = process.env.upstream_port || 3000;
+
+app.listen(port, () => {
+  console.log(`node18 listening on port: ${port}`);
+});
