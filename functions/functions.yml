@@ -30,3 +30,7 @@ functions:
     lang: hybrid-node18
     handler: ./crypto
     image: defaultlin/crypto:latest
+  image-flip-rotate:
+    lang: hybrid-node18
+    handler: ./image-flip-rotate
+    image: defaultlin/image-flip-rotate:latest

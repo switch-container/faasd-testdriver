@@ -22,7 +22,7 @@ ENV NPM_CONFIG_LOGLEVEL warn
 RUN mkdir -p /home/app/function
 
 WORKDIR /home/app/
-COPY --chown=app:app index.js package.json           .
+COPY --chown=app:app index.js package.json           ./
 
 USER root
 RUN npm i
@@ -30,7 +30,9 @@ USER app
 
 WORKDIR /home/app/function/
 COPY --chown=app:app function/*.json	.
+USER root
 RUN npm i
+USER app
 COPY --chown=app:app function/   .
 
 ##############################################
