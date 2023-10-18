@@ -34,3 +34,7 @@ functions:
     lang: hybrid-node18
     handler: ./image-flip-rotate
     image: defaultlin/image-flip-rotate:latest
+  graph-pagerank:
+    lang: hybrid-py
+    handler: ./graph-pagerank
+    image: defaultlin/graph-pagerank:latest

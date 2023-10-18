@@ -1,5 +1,5 @@
 provider:
-  gateway: http://192.168.161.4:8080
+  gateway: http://192.168.162.3:8080
   username: admin
   password: yhVekl0sluID2KzzCRgzRERzJnIoiwj2nne20R5RoVYuJo5JllNbU9c96Amttnr
 timeout: 60
@@ -31,3 +31,6 @@ functions:
       num_of_iterations: 10000
   image-flip-rotate:
     request_body:
+  graph-pagerank:
+    request_body:
+      size: 50000

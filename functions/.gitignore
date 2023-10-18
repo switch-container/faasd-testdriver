@@ -4,3 +4,5 @@ template/*
 !template/hybrid-node18
 build
 .secrets
+
+template
