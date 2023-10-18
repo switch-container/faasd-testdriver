@@ -98,7 +98,7 @@ def monitor_memory(pid, max_memory_usage, interval = 0.01):
     while True:
         process = psutil.Process(pid)
         memory_usage = process.memory_info().rss / 1024 / 1024  # Convert to MB
-        max_memory_usage.value = max(max_memory_usage, memory_usage)
+        max_memory_usage.value = max(max_memory_usage.value, memory_usage)
         time.sleep(interval)
 
 @app.route('/', defaults={'path': ''}, methods=['GET', 'PUT', 'POST', 'PATCH', 'DELETE'])
