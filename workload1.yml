@@ -1,34 +1,46 @@
 provider:
   gateway: http://127.0.0.1:8081
-  username: admin
-  password: yhVekl0sluID2KzzCRgzRERzJnIoiwj2nne20R5RoVYuJo5JllNbU9c96Amttnr
-timeout: 60
-max_retry: 3
-average: 3
-warm_up_count: 3
-total_timeout: 1800
+peek_period: 10
+cycle_period: 90
+cycle_num: 20
 functions:
   chameleon:
     request_body:
       num_of_rows: 400
       num_of_cols: 400
+    max_concurrency: 50
+    exec_time_hint: 1
   pyaes:
     request_body:
       length_of_message: 1000
       num_of_iterations: 100
+    max_concurrency: 50
+    exec_time_hint: 1
   dynamic-html:
     request_body:
       username: Tsinghua University
       random_len: 1000
+    max_concurrency: 50
+    exec_time_hint: 0.005
   image-processing:
     request_body:
+    max_concurrency: 50
+    exec_time_hint: 5
   image-recognition:
     request_body:
+    max_concurrency: 25
+    exec_time_hint: 20
   video-processing:
     request_body:
+    max_concurrency: 30
+    exec_time_hint: 6.5
   crypto:
     request_body:
       length_of_message: 1000
       num_of_iterations: 15000
+    max_concurrency: 50
+    exec_time_hint: 1
   image-flip-rotate:
     request_body:
+    max_concurrency: 36
+    exec_time_hint: 6

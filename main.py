@@ -22,10 +22,9 @@ if __name__ == "__main__":
     test_driver = TestDriver(gateway, max_retry=config.get("max_retry", 3), timeout=config.get("timeout", 60))
 
     workloads = None
-    with open("workload_1.json", "r") as f:
+    with open("workload.json", "r") as f:
         workloads = json.load(f)
 
-    total_timeout = config["cycle_num"] * config["cycle_period"] * 1.2
-    total_timeout = math.ceil(total_timeout)
+    total_timeout = config["total_timeout"]
     print(f"total_timeout {total_timeout}")
     test_driver.test(workloads, config["functions"], total_timeout)

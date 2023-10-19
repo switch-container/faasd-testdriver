@@ -3,6 +3,7 @@ import argparse
 import yaml
 import json
 import math
+import matplotlib.pyplot as plt
 
 random.seed(2022310806)
 
@@ -11,6 +12,7 @@ def workload_1(config: dict):
     """
     :param config: parsed dict from config.yml
     """
+    print(f"start generating workload 1 ...")
 
     # each funtion will busrt in one peek_period in one cycle_period
     # so for workload 1: the cycle_period should > faasd containerd cache duration
@@ -18,6 +20,7 @@ def workload_1(config: dict):
     cycle_period = config.get("cycle_period", 90)
     cycle_num = config.get("cycle_num", 6)
     func_period = cycle_period // len(functions)
+    print(f"cycle_period {cycle_period} func_period {func_period} cycle_num {cycle_num}")
 
     peak_start_array = list(range(len(functions)))
     random.shuffle(peak_start_array)
@@ -36,7 +39,7 @@ def workload_1(config: dict):
             for t in range(cycle_period):
                 num = 0
                 peak_period = min(func_period, exec_time_hint)
-                if t >= peak_start and t <= math.ceil(peak_start + peak_period):
+                if t >= peak_start and t < math.ceil(peak_start + peak_period):
                     std = (peek_concurrency // peak_period) * 0.05
                     std = max(math.ceil(std), 1)
 
@@ -48,17 +51,66 @@ def workload_1(config: dict):
     return res
 
 
+def workload_2(config: dict):
+    print(f"start generating workload 2 ...")
+    # we will send burst workload within the gc criterion
+    # but due the limitation of memory, we may meet cold start
+    functions = config["functions"]
+    gc_criterion = config["faasd_gc_criterion"]
+    cycle_num = config.get("cycle_num", 6)
+    interval = int(gc_criterion * 0.8)
+    func_period = interval // len(functions)
+
+    print(f"gc criterion {gc_criterion} interval {interval} func_period {func_period} cycle_num {cycle_num}")
+
+    res = {}
+    start = 0
+    for func_name in functions:
+        arrival_invokes = []
+        concurrency = functions[func_name]["max_concurrency"]
+        dur = functions[func_name]["duration"]
+        print(f"{func_name} start is at {start} concurrency is {concurrency} duration {dur}")
+        for _ in range(cycle_num):
+            for t in range(interval):
+                if t >= start and t < start + dur:
+                    arrival_invokes.append(concurrency)
+                else:
+                    arrival_invokes.append(0)
+        assert len(arrival_invokes) == interval * cycle_num
+        res[func_name] = arrival_invokes
+        start += func_period
+    return res
+
+
+def draw_workload(res: dict):
+    size = 120
+    fig, ax = plt.subplots()
+    for func_name, arrival_invokes in res.items():
+        times = list(range(size))
+        ax.plot(times, arrival_invokes[:size], label=func_name)
+    ax.legend()
+    fig.savefig("workload.png")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", help="config file path (default: config.yml)", default="config.yml")
+    parser.add_argument("-w", "--workload", type=str, choices=["1", "2"], required=True, help="the workload to generate")
     args = parser.parse_args()
 
     config = None
-    with open(args.config, "r") as f:
+    with open(f"workload{args.workload}.yml", "r") as f:
         config = yaml.load(f, Loader=yaml.SafeLoader)
     if config is None:
         raise Exception(f"Error: Config {args.config} is invalid")
 
-    res = workload_1(config)
-    with open("workload_1.json", "w") as f:
+    if args.workload == "1":
+        res = workload_1(config)
+    elif args.workload == "2":
+        res = workload_2(config)
+    else:
+        raise Exception(f"unknown workload args {args.workload}")
+
+    with open(f"workload.json", "w") as f:
         json.dump(res, f, indent=2)
+
+    draw_workload(res)
