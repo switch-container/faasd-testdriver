@@ -3,7 +3,6 @@ from gevent import monkey
 
 monkey.patch_all()
 
-import json
 import matplotlib.pyplot as plt
 import requests
 from requests.adapters import HTTPAdapter
@@ -13,6 +12,9 @@ from time import time
 import random
 from typing import Dict, List
 import re
+import logging
+
+logging.basicConfig(format="[%(levelname)s] %(asctime)s %(message)s", level=logging.INFO)
 
 
 class TestDriver:
@@ -75,12 +77,12 @@ class TestDriver:
         subprocess.check_call(["faas-cli", "register", "-f", self.function_yaml, "-g", self.gateway])
 
     def invoke(self, lambda_name: str, request_body):
-        # Perform test
+        # Perform a single request
         retry_count = 0
         response = None
         error = None
         e2e_latency = 0
-        while (response is None or response.status_code != 200) and retry_count < self.max_retry:
+        while response is None or response.status_code != 200:
             start = time()
             try:
                 response = requests.post(
@@ -91,15 +93,17 @@ class TestDriver:
                 if response.status_code != 200:
                     raise RuntimeError(f"[{response.status_code} {response.reason}] {response.text}")
             except Exception as e:
-                print(f"invoke {lambda_name} try {retry_count}th failed: {e}")
+                logging.warning(f"invoke {lambda_name} try {retry_count}th failed: {e}")
                 error = e
+                if retry_count == self.max_retry:
+                    break
                 gevent.sleep(0.5 * (2**retry_count))
                 retry_count += 1
-                continue
-            e2e_latency = time() - start
-            error = None
+            else:
+                e2e_latency = time() - start
+                error = None
         if error is not None or response is None:
-            print(f"invoke {lambda_name} FINALLY failed: {error}")
+            logging.error(f"invoke {lambda_name} FINALLY failed: {error}")
             raise RuntimeError(f"Max retry limit exceeded: {error}")
         if response.text is None or response.text == "":
             raise RuntimeError(f"Empty response from {lambda_name}")
@@ -109,18 +113,52 @@ class TestDriver:
             raise RuntimeError(f"Invalid response from {lambda_name}")
         res = {"e2e_latency": e2e_latency, "latency": latency, "data": data, "retry_count": retry_count}
         if "recognition" in lambda_name:
-            print(lambda_name, res)
+            logging.info("%s %s", lambda_name, res)
         else:
-            print(lambda_name, {"e2e_latency": e2e_latency, "latency": latency, "retry_count": retry_count}, sep=" ")
+            logging.info("%s %s", lambda_name, {"e2e_latency": e2e_latency, "latency": latency, "retry_count": retry_count})
         return res
 
-    def test(self, workloads: Dict[str, List[int]], functions: dict, total_timeout: int):
+    def warmup(self, warmup: Dict[str, List[int]], functions: dict):
+        logging.info("START warmup...")
+        jobs = {}
+        total_timeout = 0
+        for func, invokes in warmup.items():
+            if total_timeout == 0:
+                total_timeout = len(invokes)
+            else:
+                assert total_timeout == len(invokes)
+            func_jobs = []
+            conf = functions[func]
+            request_body = conf.get("request_body")
+            for t, invoke_num in enumerate(invokes):
+                for _ in range(invoke_num):
+                    g = gevent.spawn_later(t + random.random(), self.invoke, func, request_body)
+                    func_jobs.append(g)
+            jobs[func] = func_jobs
+        gevent.joinall(sum(jobs.values(), []), timeout=int(total_timeout * 1.2))
+
+    def cleanup_metric(self):
+        response = requests.delete(
+            f"{self.gateway}/system/metrics",
+            timeout=self.timeout,
+        )
+        if response.status_code != 200:
+            logging.error(f"cleanup_metric failed: [{response.status_code} {response.reason}] {response.text}")
+            raise RuntimeError(f"[{response.status_code} {response.reason}] {response.text}")
+
+    def test(self, workloads: Dict[str, List[int]], functions: dict):
         """Test functions"""
+        logging.info("START test...")
         jobs = {}
         all_e2e_latency = {}
         all_latency = {}
         all_startup_latency = {}
+        total_timeout = 0
         for func, arrival_invokes in workloads.items():
+            if total_timeout == 0:
+                total_timeout = len(arrival_invokes)
+            else:
+                assert total_timeout == len(arrival_invokes)
             func_jobs = []
             conf = functions[func]
             request_body = conf.get("request_body")
@@ -129,10 +167,10 @@ class TestDriver:
                     g = gevent.spawn_later(t + random.random(), self.invoke, func, request_body)
                     func_jobs.append(g)
             jobs[func] = func_jobs
-        gevent.joinall(sum(jobs.values(), []), timeout=total_timeout)
+        gevent.joinall(sum(jobs.values(), []), timeout=int(total_timeout * 1.2))
 
         startup_latencies = self.get_start_up_latency()
-        print("startup_latencies: ", startup_latencies)
+        logging.info("startup_latencies: ", startup_latencies)
         for func, gs in jobs.items():
             e2e_latency = [g.get()["e2e_latency"] for g in gs]
             latency = [g.get()["latency"] for g in gs]
@@ -141,10 +179,10 @@ class TestDriver:
             all_latency[func] = latency
 
             if func not in startup_latencies:
-                print(f"find {func} in /system/metrics failed")
+                logging.error(f"find {func} in /system/metrics failed")
                 return
             all_startup_latency[func] = startup_latencies[func]
-        print("final startup latency: ", all_startup_latency)
+        logging.info("final startup latency: ", all_startup_latency)
 
         # Draw result
         self.draw_result(all_e2e_latency, "e2e_latency")
@@ -160,7 +198,7 @@ class TestDriver:
             if response.status_code != 200:
                 raise RuntimeError(f"[{response.status_code} {response.reason}] {response.text}")
         except Exception as e:
-            print(f"request for /system/metrics failed: {e}")
+            logging.error(f"request for /system/metrics failed: {e}")
             return {}
         else:
             start_latency = self.parse_latency_metric(response.text, "switch-latency")
@@ -188,7 +226,7 @@ class TestDriver:
         """
         m = re.search(r"latency metric {}: (.*)$".format(metric_name), response_text, re.M)
         if m is None:
-            print(f"parse latency metric failed {metric_name}")
+            logging.error(f"parse latency metric failed {metric_name}")
             return {}
         pairs = re.findall(r"(.*?) -> \[(.*?)\]", m.group(1), re.M)
         res = {}
@@ -217,7 +255,7 @@ class TestDriver:
         """
         m = re.search(r"find grained counter metric {}: (.*)$".format(metric_name), response_text, re.M)
         if m is None:
-            print(f"parse latency metric failed {metric_name}")
+            logging.error(f"parse latency metric failed {metric_name}")
             return {}
         pairs = re.findall(r"([^ ]*?) -> (\d+)", m.group(1), re.M)
         res = {}

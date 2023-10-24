@@ -3,6 +3,7 @@ provider:
 peek_period: 10
 cycle_period: 90
 cycle_num: 20
+warmup_cycle: 2
 functions:
   chameleon:
     request_body:

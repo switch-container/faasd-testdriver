@@ -20,12 +20,15 @@ def workload_1(config: dict):
     cycle_period = config.get("cycle_period", 90)
     cycle_num = config.get("cycle_num", 6)
     func_period = cycle_period // len(functions)
-    print(f"cycle_period {cycle_period} func_period {func_period} cycle_num {cycle_num}")
+    warmup_cycle = config.get("warmup_cycle", 2)
+    assert warmup_cycle <= cycle_num
+    print(f"cycle_period {cycle_period} func_period {func_period} cycle_num {cycle_num} warmup cycle {warmup_cycle}")
 
     peak_start_array = list(range(len(functions)))
     random.shuffle(peak_start_array)
 
-    res = {}
+    res = {}  # this is real workload that we need test
+    warmup = {}  # this is the warmup worload
     for func_name in functions:
         # run multiple instance in 10s
         arrival_invokes = []
@@ -48,7 +51,8 @@ def workload_1(config: dict):
                 arrival_invokes.append(num)
         assert len(arrival_invokes) == cycle_period * cycle_num
         res[func_name] = arrival_invokes
-    return res
+        warmup[func_name] = arrival_invokes[: cycle_period * warmup_cycle]
+    return res, warmup
 
 
 def workload_2(config: dict):
@@ -58,12 +62,17 @@ def workload_2(config: dict):
     functions = config["functions"]
     gc_criterion = config["faasd_gc_criterion"]
     cycle_num = config.get("cycle_num", 6)
-    interval = int(gc_criterion * 0.8)
-    func_period = interval // len(functions)
+    warmup_cycle = config.get("warmup_cycle", 2)
+    assert warmup_cycle <= cycle_num
 
-    print(f"gc criterion {gc_criterion} interval {interval} func_period {func_period} cycle_num {cycle_num}")
+    T = 0
+    for func_name in functions:
+        T += functions[func_name]["last"]
+
+    print(f"gc criterion {gc_criterion} one cycle dur {T} cycle_num {cycle_num} warmup_cycle {warmup_cycle}")
 
     res = {}
+    warmup = {}
     start = 0
     for func_name in functions:
         arrival_invokes = []
@@ -71,15 +80,16 @@ def workload_2(config: dict):
         dur = functions[func_name]["duration"]
         print(f"{func_name} start is at {start} concurrency is {concurrency} duration {dur}")
         for _ in range(cycle_num):
-            for t in range(interval):
+            for t in range(T):
                 if t >= start and t < start + dur:
                     arrival_invokes.append(concurrency)
                 else:
                     arrival_invokes.append(0)
-        assert len(arrival_invokes) == interval * cycle_num
+        assert len(arrival_invokes) == T * cycle_num
         res[func_name] = arrival_invokes
-        start += func_period
-    return res
+        start += functions[func_name]["last"]
+        warmup[func_name] = arrival_invokes[: T * warmup_cycle]
+    return res, warmup
 
 
 def draw_workload(res: dict):
@@ -104,13 +114,16 @@ if __name__ == "__main__":
         raise Exception(f"Error: Config {args.config} is invalid")
 
     if args.workload == "1":
-        res = workload_1(config)
+        res, warmup = workload_1(config)
     elif args.workload == "2":
-        res = workload_2(config)
+        res, warmup = workload_2(config)
     else:
         raise Exception(f"unknown workload args {args.workload}")
 
     with open(f"workload.json", "w") as f:
         json.dump(res, f, indent=2)
+
+    with open(f"warmup.json", "w") as f:
+        json.dump(warmup, f, indent=2)
 
     draw_workload(res)

@@ -6,7 +6,6 @@ timeout: 60
 max_retry: 3
 average: 3
 warm_up_count: 3
-total_timeout: 1800
 functions:
   chameleon:
     request_body:

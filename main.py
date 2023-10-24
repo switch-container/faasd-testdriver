@@ -5,6 +5,7 @@ import math
 
 from test_driver import TestDriver
 
+
 if __name__ == "__main__":
     # 初始化argparse
     parser = argparse.ArgumentParser()
@@ -21,10 +22,16 @@ if __name__ == "__main__":
     gateway = provider.get("gateway", "http://localhost:8081")
     test_driver = TestDriver(gateway, max_retry=config.get("max_retry", 3), timeout=config.get("timeout", 60))
 
-    workloads = None
     with open("workload.json", "r") as f:
         workloads = json.load(f)
 
-    total_timeout = config["total_timeout"]
-    print(f"total_timeout {total_timeout}")
-    test_driver.test(workloads, config["functions"], total_timeout)
+    with open("warmup.json", "r") as f:
+        warmup = json.load(f)
+
+    test_driver.warmup(warmup, config["functions"])
+    try:
+        test_driver.cleanup_metric()
+    except Exception as e:
+        pass
+    else:
+        test_driver.test(workloads, config["functions"])
