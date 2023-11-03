@@ -185,9 +185,9 @@ class TestDriver:
         logging.info("final startup latency: ", all_startup_latency)
 
         # Draw result
-        self.draw_result(all_e2e_latency, "e2e_latency")
-        self.draw_result(all_latency, "latency")
-        self.draw_result(all_startup_latency, "start_latency")
+        # self.draw_result(all_e2e_latency, "e2e_latency")
+        # self.draw_result(all_latency, "latency")
+        # self.draw_result(all_startup_latency, "start_latency")
 
     def get_start_up_latency(self):
         try:

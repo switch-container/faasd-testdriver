@@ -7,6 +7,7 @@ max_retry: 3
 average: 3
 warm_up_count: 3
 functions:
+
   chameleon:
     request_body:
       num_of_rows: 400
@@ -30,4 +31,54 @@ functions:
       length_of_message: 1000
       num_of_iterations: 15000
   image-flip-rotate:
+    request_body:
+
+  chameleon_1:
+    request_body:
+      num_of_rows: 300
+      num_of_cols: 500
+  pyaes_1:
+    request_body:
+      length_of_message: 1200
+      num_of_iterations: 80
+  dynamic-html_1:
+    request_body:
+      username: Peking University
+      random_len: 960
+  image-processing_1:
+    request_body:
+  image-recognition_1:
+    request_body:
+  video-processing_1:
+    request_body:
+  crypto_1:
+    request_body:
+      length_of_message: 1200
+      num_of_iterations: 13000
+  image-flip-rotate_1:
+    request_body:
+
+  chameleon_2:
+    request_body:
+      num_of_rows: 350
+      num_of_cols: 450
+  pyaes_2:
+    request_body:
+      length_of_message: 1500
+      num_of_iterations: 60
+  dynamic-html_2:
+    request_body:
+      username: Harvard University
+      random_len: 990
+  image-processing_2:
+    request_body:
+  image-recognition_2:
+    request_body:
+  video-processing_2:
+    request_body:
+  crypto_2:
+    request_body:
+      length_of_message: 1500
+      num_of_iterations: 10000
+  image-flip-rotate_2:
     request_body:
