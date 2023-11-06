@@ -159,6 +159,9 @@ def azure_workload(index: dict, dir: str):
     data = config.get_func_data()
     invokes = {}
     warmup = {}
+    upper_bound = {'chameleon': 30, 'image-processing': 15,
+                   'image-flip-rotate': 25, 'pyaes': 40,
+                   'crypto': 40, 'image-recognition': 8, 'video-processing': 8}
     for func_name in data:
         arrival_invokes = []
         row = data[func_name]
@@ -174,6 +177,10 @@ def azure_workload(index: dict, dir: str):
             else:
                 one_min_load = skew_split_one_min_load(left_invokes_per_min)
             # do not use too skew workload
+            for name, upper in upper_bound.items():
+                if func_name.startswith(name) and max(one_min_load) > upper:
+                    one_min_load = evenally_split_one_min_load(left_invokes_per_min)
+            # default max is 40
             if not func_name.startswith('dynamic-html') and max(one_min_load) >= 40:
                 one_min_load = evenally_split_one_min_load(left_invokes_per_min)
             assert(sum(one_min_load) == left_invokes_per_min and len(one_min_load) == 60)
@@ -252,56 +259,67 @@ if __name__ == "__main__":
         if args.dataset is None or len(args.dataset) == 0:
             parser.error("-w/--workload azure requires --dataset")
         index = {
-            "dynamic-html": 2551,
-            "image-flip-rotate": 27884,
-            "video-processing": 3666,
-            "chameleon": 4067,
-            "pyaes": 846,
-            "image-processing": 1554,
+            "image-flip-rotate": 13629,
+            "video-processing": 5365,
+            "chameleon": 14065,
+            "pyaes": 31057,
+            "image-processing": 5474,
             "image-recognition": 30486,
-            "crypto": 839,
-            "image-flip-rotate_1": 46374,
-            "video-processing_1": 654,
-            "chameleon_1": 4812,
-            "pyaes_1": 1059,
-            "image-processing_1": 3568,
+            "crypto": 650,
+
+            "image-flip-rotate_1": 15961,
+            "video-processing_1": 22573,
+            "chameleon_1": 3840,
+            "pyaes_1": 14931,
+            "image-processing_1": 12272,
             "image-recognition_1": 9298,
-            "crypto_1": 45306,
-            "image-flip-rotate_2": 46376,
+            "crypto_1": 11431,
+
+            "dynamic-html_2": 19813,
+            "image-flip-rotate_2": 8670,
             "video-processing_2": 1086,
-            "chameleon_2": 1164,
-            "pyaes_2": 4263,
-            "image-processing_2": 2376,
-            "image-recognition_2": 9416,
-            "crypto_2": 42794,
+            "chameleon_2": 7659,
+            "pyaes_2": 13628,
+            "image-processing_2": 13641,
+            "image-recognition_2": 8263,
+            "crypto_2": 11431,
         }
         res, warmup = azure_workload(index, args.dataset)
     elif args.workload == "ali":
         if args.dataset is None or len(args.dataset) == 0:
             parser.error("-w/--workload ali requires --dataset")
         index = {
-            "dynamic-html": "a5d16f04c764b7bd3c5bb36d2ae74e96bf7d126c",
+            "dynamic-html": "6f8d9ac59bfa8eff8c53ddc83ad161b5372f14ef",
             "image-flip-rotate": "c5e35a591b9915b413944fa520c63c7d62433d6a",
             "video-processing": "f2ce5b954bb55d1c30b47dc12c66cc565961fcd7",
-            "chameleon": "9543b9e40874abe031f13f750b0be62131e8bd88",
-            "pyaes": "0181aff53a1108a9365bf812f9707a46a76a93ba",
+            "chameleon": "8ab8fd7f7cfe58aafbee740940425f6ac88487dd",
+            "pyaes": "19353a2e4b72946e52c65c2899dc8597733a3446",
             "image-processing": "dfd9a820c6f3dcaffea1649adc248d7a95bb01ed",
-            "image-recognition": "0dd9b0ae5c58a00ac5bcc9b77100381444a854ad",
-            "crypto": "030707aacf589606b1160912bdf4396b2d252915",
-            "image-flip-rotate_1": "f43c6f855fce936da9177b65dfc67ef579edf77e",
+            "image-recognition": "7fa9eabbe409bd4c5e56edbddf1758a3f677e3b9",
+            "crypto": "aba6f081b7f2564d501d250225e2dcd207095fe9",
+
+            "dynamic-html_1": "97256a15f348b0350a93129691ebdafd14227c9d",
+            "image-flip-rotate_1": "9c1222b7b54433655b7c623555490f47042cafdc",
             "video-processing_1": "9a89d9b5b379a958255fd34e5ee770ace2cdafb2",
-            "chameleon_1": "8ab8fd7f7cfe58aafbee740940425f6ac88487dd",
-            "pyaes_1": "da10c07532a06efb9a6a89baae980c6f1782503b",
-            "image-processing_1": "a0b745bfcecce6c5dfa80d8e5302cc2e1ffbf9af",
-            "image-recognition_1": "105e1e0e0208ddaaabc59ed6e08aeef437cb1d1a",
-            "crypto_1": "0181aff53a1108a9365bf812f9707a46a76a93ba",
-            "image-flip-rotate_2": "35abc2d27b129b752c68e6e45c266194575eebc2",
-            "video-processing_2": "2e8773e5d82ab7e1da7f937e2e4f472c36e0bca8",
-            "chameleon_2": "aba6f081b7f2564d501d250225e2dcd207095fe9",
-            "pyaes_2": "5b6d00d467537593c02dfe735e15c182056c572a",
-            "image-processing_2": "9c1222b7b54433655b7c623555490f47042cafdc",
-            "image-recognition_2": "bd3456a228222fd75ce1c74098fe7bd3fd1ce59c",
-            "crypto_2": "5b6d00d467537593c02dfe735e15c182056c572a",
+            "chameleon_1": "a0b745bfcecce6c5dfa80d8e5302cc2e1ffbf9af",
+            "pyaes_1": "0181aff53a1108a9365bf812f9707a46a76a93ba",
+            "image-processing_1": "35abc2d27b129b752c68e6e45c266194575eebc2",
+            "image-recognition_1": "f68a6fecd7340c73c9debf5e362abf2ef12925ce",
+            "crypto_1": "f43c6f855fce936da9177b65dfc67ef579edf77e",
+
+            
+            "dynamic-html_2": "a971cbd8b5ef198a52ba9fea819f5a2166c07131",
+            "image-flip-rotate_2": "030707aacf589606b1160912bdf4396b2d252915",
+            "video-processing_2": "e31ac19e3bbb8c0dcf7ceede5fc7b8f6b2f935a6",
+            "chameleon_2": "da10c07532a06efb9a6a89baae980c6f1782503b",
+            "pyaes_2": "0181aff53a1108a9365bf812f9707a46a76a93ba",
+            "image-processing_2": "419076e83e5fb74421897904c58976bb1fa3f9bd",
+            "image-recognition_2": "f68a6fecd7340c73c9debf5e362abf2ef12925ce",
+            "crypto_2": "c095d9e0c27a664d6902aa2fd6f538ec3ba8894a",
+
+            # a5d16f04c764b7bd3c5bb36d2ae74e96bf7d126c
+            # 663e9d923bb282b4624f45707582ff2e33666a1b
+            # 6f8d9ac59bfa8eff8c53ddc83ad161b5372f14ef
         }
         res, warmup = ali_scalr_workload(index, args.dataset)
     else:
@@ -313,4 +331,4 @@ if __name__ == "__main__":
     with open(f"warmup.json", "w") as f:
         json.dump(warmup, f, indent=2)
 
-    draw_workload(res)
+    # draw_workload(res)
