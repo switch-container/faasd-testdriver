@@ -15,7 +15,7 @@ functions:
   pyaes:
     request_body:
       length_of_message: 1000
-      num_of_iterations: 100
+      num_of_iterations: 150
   dynamic-html:
     request_body:
       username: Tsinghua University
@@ -29,7 +29,7 @@ functions:
   crypto:
     request_body:
       length_of_message: 1000
-      num_of_iterations: 15000
+      num_of_iterations: 20000
   image-flip-rotate:
     request_body:
 
@@ -40,7 +40,7 @@ functions:
   pyaes_1:
     request_body:
       length_of_message: 1200
-      num_of_iterations: 80
+      num_of_iterations: 120
   dynamic-html_1:
     request_body:
       username: Peking University
@@ -54,7 +54,7 @@ functions:
   crypto_1:
     request_body:
       length_of_message: 1200
-      num_of_iterations: 13000
+      num_of_iterations: 18000
   image-flip-rotate_1:
     request_body:
 
@@ -65,7 +65,7 @@ functions:
   pyaes_2:
     request_body:
       length_of_message: 1500
-      num_of_iterations: 60
+      num_of_iterations: 90
   dynamic-html_2:
     request_body:
       username: Harvard University
@@ -79,6 +79,6 @@ functions:
   crypto_2:
     request_body:
       length_of_message: 1500
-      num_of_iterations: 10000
+      num_of_iterations: 15000
   image-flip-rotate_2:
     request_body:

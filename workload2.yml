@@ -9,7 +9,7 @@ functions:
       num_of_rows: 400
       num_of_cols: 400
     max_concurrency: 20
-    duration: 3
+    duration: 2
     last: 10
   dynamic-html:
     request_body:
@@ -21,21 +21,21 @@ functions:
   image-processing:
     request_body:
     max_concurrency: 15
-    duration: 4
+    duration: 3
     last: 13
   image-recognition:
     request_body:
-    max_concurrency: 4
-    duration: 4
+    max_concurrency: 5
+    duration: 3
     last: 45
   video-processing:
     request_body:
-    max_concurrency: 7
-    duration: 5
+    max_concurrency: 8
+    duration: 4
     last: 23
   image-flip-rotate:
     request_body:
     max_concurrency: 12
-    duration: 5
+    duration: 3
     last: 15
 

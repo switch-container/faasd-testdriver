@@ -159,9 +159,9 @@ def azure_workload(index: dict, dir: str):
     data = config.get_func_data()
     invokes = {}
     warmup = {}
-    upper_bound = {'chameleon': 30, 'image-processing': 15,
-                   'image-flip-rotate': 25, 'pyaes': 40,
-                   'crypto': 40, 'image-recognition': 8, 'video-processing': 8}
+    upper_bound = {'chameleon': 35, 'image-processing': 30,
+                   'image-flip-rotate': 30, 'pyaes': 50,
+                   'crypto': 50, 'image-recognition': 15, 'video-processing': 15}
     for func_name in data:
         arrival_invokes = []
         row = data[func_name]
@@ -260,24 +260,24 @@ if __name__ == "__main__":
             parser.error("-w/--workload azure requires --dataset")
         index = {
             "image-flip-rotate": 13629,
-            "video-processing": 5365,
+            "video-processing": 44699,
             "chameleon": 14065,
             "pyaes": 31057,
             "image-processing": 5474,
-            "image-recognition": 30486,
+            "image-recognition": 6738,
             "crypto": 650,
 
             "image-flip-rotate_1": 15961,
-            "video-processing_1": 22573,
+            "video-processing_1": 26045,
             "chameleon_1": 3840,
             "pyaes_1": 14931,
             "image-processing_1": 12272,
-            "image-recognition_1": 9298,
+            "image-recognition_1": 33781,
             "crypto_1": 11431,
 
             "dynamic-html_2": 19813,
             "image-flip-rotate_2": 8670,
-            "video-processing_2": 1086,
+            "video-processing_2": 36225,
             "chameleon_2": 7659,
             "pyaes_2": 13628,
             "image-processing_2": 13641,
@@ -291,11 +291,11 @@ if __name__ == "__main__":
         index = {
             "dynamic-html": "6f8d9ac59bfa8eff8c53ddc83ad161b5372f14ef",
             "image-flip-rotate": "c095d9e0c27a664d6902aa2fd6f538ec3ba8894a",
-            "video-processing": "f2ce5b954bb55d1c30b47dc12c66cc565961fcd7",
+            "video-processing": "e576a4f2c918c1166dcec40f7958e11c17cc62ad",
             "chameleon": "a0b745bfcecce6c5dfa80d8e5302cc2e1ffbf9af",
             "pyaes": "3c66fdfa3354c35841d82814ec92a826a26f5e24",
             "image-processing": "f43c6f855fce936da9177b65dfc67ef579edf77e",
-            "image-recognition": "7fa9eabbe409bd4c5e56edbddf1758a3f677e3b9",
+            "image-recognition": "9cdb9644ccd8e9a99f4d95c7a3e4bdebb181e717",
             "crypto": "bfe1ad9927f9fbcc1b9989d7fc82ca92fabfc6a4",
 
             "dynamic-html_1": "97256a15f348b0350a93129691ebdafd14227c9d",
@@ -304,17 +304,17 @@ if __name__ == "__main__":
             "chameleon_1": "8fd13b83de53b911e072a5e8673a0a29da35c544",
             "pyaes_1": "da10c07532a06efb9a6a89baae980c6f1782503b",
             "image-processing_1": "2e8773e5d82ab7e1da7f937e2e4f472c36e0bca8",
-            "image-recognition_1": "f68a6fecd7340c73c9debf5e362abf2ef12925ce",
+            "image-recognition_1": "e3caff0e323e3d0835838826c336d5fc2fb08653",
             "crypto_1": "c5e35a591b9915b413944fa520c63c7d62433d6a",
 
             
             "dynamic-html_2": "e97e7d5d66536d0e5c854a501951ee4e0104a228",
             "image-flip-rotate_2": "36cc3d741b86ad4298c3cdc279ff07f01298f5d9",
-            "video-processing_2": "e31ac19e3bbb8c0dcf7ceede5fc7b8f6b2f935a6",
-            "chameleon_2": "9c1222b7b54433655b7c623555490f47042cafdc",
+            "video-processing_2": "616877714f984e3cf777ee77829c3ebe1304c8a2",
+            "chameleon_2": "6d8d38f8d7956864f25f428d349a0c94bff3ce14",
             "pyaes_2": "f7683b06956ceddc5119030e333630f3ec08b31c",
             "image-processing_2": "6d8d38f8d7956864f25f428d349a0c94bff3ce14",
-            "image-recognition_2": "f68a6fecd7340c73c9debf5e362abf2ef12925ce",
+            "image-recognition_2": "7c1846e2a724b584e8a2fcc182a24f47074c7ed6",
             "crypto_2": "c095d9e0c27a664d6902aa2fd6f538ec3ba8894a",
 
             # a5d16f04c764b7bd3c5bb36d2ae74e96bf7d126c
