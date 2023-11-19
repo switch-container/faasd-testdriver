@@ -37,19 +37,21 @@ def workload_1(config: dict):
         arrival_invokes = []
         func = functions[func_name]
         peek_concurrency = func.get("max_concurrency", 40)
-        exec_time_hint = func["exec_time_hint"]
+        peak_times = func["peak_times"]
         # we should burst request in exec_time_hint to prevent reuse
         peak_start = peak_start_array.pop(0) * func_period
-        print(f"{func_name} peak start is at {peak_start} peek concurrency is {peek_concurrency}")
+        peak_interval = func.get("interval", 0)
+        peak_period = min(func_period, peak_times  + peak_interval * (peak_times - 1))
+        print(f"{func_name} peak start is at {peak_start} peek concurrency is {peek_concurrency} "
+              f"period is {peak_period} interval is {peak_interval}")
         for _ in range(cycle_num):
             for t in range(cycle_period):
                 num = 0
-                peak_period = min(func_period, exec_time_hint)
-                if t >= peak_start and t < math.ceil(peak_start + peak_period):
-                    std = (peek_concurrency // peak_period) * 0.05
+                if t >= peak_start and t < math.ceil(peak_start + peak_period) and ((t - peak_start) % (peak_interval + 1) == 0):
+                    std = peek_concurrency * 0.1
                     std = max(math.ceil(std), 1)
 
-                    num = abs(random.normalvariate(peek_concurrency // peak_period, std))
+                    num = abs(random.normalvariate(peek_concurrency, std))
                     num = min(int(num), 300)
                 arrival_invokes.append(num)
         assert len(arrival_invokes) == cycle_period * cycle_num
@@ -80,11 +82,13 @@ def workload_2(config: dict):
     for func_name in functions:
         arrival_invokes = []
         concurrency = functions[func_name]["max_concurrency"]
-        dur = functions[func_name]["duration"]
-        print(f"{func_name} start is at {start} concurrency is {concurrency} duration {dur}")
+        peak_times = functions[func_name]["peak_times"]
+        peak_interval = functions[func_name].get("interval", 0)
+        print(f"{func_name} start is at {start} concurrency is {concurrency} peak_times {peak_times} interval {peak_interval}")
+        peak_period = peak_interval * (peak_times - 1) + peak_times
         for _ in range(cycle_num):
             for t in range(T):
-                if t >= start and t < start + dur:
+                if t >= start and t < start + peak_period and ((t-start) % (peak_interval + 1) == 0):
                     arrival_invokes.append(concurrency)
                 else:
                     arrival_invokes.append(0)
