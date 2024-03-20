@@ -1,10 +1,12 @@
 import argparse
 import yaml
 import json
-import math
+import logging
+import sys
 
 from test_driver import TestDriver
 
+logging.basicConfig(format="[%(levelname)s] %(asctime)s %(message)s", level=logging.INFO)
 
 if __name__ == "__main__":
     # 初始化argparse
@@ -32,6 +34,7 @@ if __name__ == "__main__":
     try:
         test_driver.cleanup_metric()
     except Exception as e:
-        pass
+        logging.error(f"cleanup metric after warmup failed: {e}")
     else:
         test_driver.test(workloads, config["functions"])
+        logging.info("test succeed and finish!")

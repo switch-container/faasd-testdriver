@@ -1,54 +1,36 @@
-provider:
-  gateway: http://127.0.0.1:8081
 peek_period: 10
 cycle_period: 90
 cycle_num: 20
 warmup_cycle: 2
 functions:
   chameleon:
-    request_body:
-      num_of_rows: 400
-      num_of_cols: 400
     max_concurrency: 25
     peak_times: 2
     interval: 1
   pyaes:
-    request_body:
-      length_of_message: 1000
-      num_of_iterations: 100
     max_concurrency: 20
     peak_times: 2
     interval: 1
   dynamic-html:
-    request_body:
-      username: Tsinghua University
-      random_len: 1000
     max_concurrency: 200
     peak_times: 2
   image-processing:
-    request_body:
     max_concurrency: 9
     peak_times: 3
     interval: 1
   image-recognition:
-    request_body:
     max_concurrency: 5
     peak_times: 3
     interval: 1
   video-processing:
-    request_body:
     max_concurrency: 8
     peak_times: 3
     interval: 1
   crypto:
-    request_body:
-      length_of_message: 1000
-      num_of_iterations: 15000
     max_concurrency: 30
     peak_times: 2
     interval: 1
   image-flip-rotate:
-    request_body:
     max_concurrency: 11
     peak_times: 3
     interval: 1
