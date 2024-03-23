@@ -1,0 +1,17 @@
+functions:
+  chameleon:
+    last: 3
+  pyaes:
+    last: 2
+  dynamic-html:
+    last: 2
+  image-processing:
+    last: 3
+  image-recognition:
+    last: 3
+  video-processing:
+    last: 4
+  crypto:
+    last: 2
+  image-flip-rotate:
+    last: 4

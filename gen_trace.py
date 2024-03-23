@@ -11,6 +11,34 @@ import numpy as np
 random.seed(2022310806)
 np.random.seed(2022310806)
 
+
+def functional_workload(config: dict, iter_nr: int):
+    functions = config["functions"]
+    T = 0
+    for func_name in functions:
+        last = functions[func_name]["last"]
+        T += last
+    print(f"start generating func workload {iter_nr} iter, T = {T}")
+    warmup = {}  # functional_test warmup only have single round
+    res = {}
+    start_time = 0
+    for func_name in functions:
+        print(f"{func_name} start at {start_time} in each cycle, last for {functions[func_name]['last']}")
+        arrival_invokes = []
+        for _ in range(iter_nr):
+            for t in range(T):
+                if t == start_time:
+                    arrival_invokes.append(1)
+                else:
+                    arrival_invokes.append(0)
+        warmup[func_name] = arrival_invokes[:T]
+        res[func_name] = arrival_invokes
+        start_time += functions[func_name]["last"]
+    for invokes in res.values():
+        assert len(invokes) == T * iter_nr
+    return res, warmup
+
+
 def workload_1(config: dict):
     """
     :param config: parsed dict from config.yml
@@ -41,9 +69,11 @@ def workload_1(config: dict):
         # we should burst request in exec_time_hint to prevent reuse
         peak_start = peak_start_array.pop(0) * func_period
         peak_interval = func.get("interval", 0)
-        peak_period = min(func_period, peak_times  + peak_interval * (peak_times - 1))
-        print(f"{func_name} peak start is at {peak_start} peek concurrency is {peek_concurrency} "
-              f"period is {peak_period} interval is {peak_interval}")
+        peak_period = min(func_period, peak_times + peak_interval * (peak_times - 1))
+        print(
+            f"{func_name} peak start is at {peak_start} peek concurrency is {peek_concurrency} "
+            f"period is {peak_period} interval is {peak_interval}"
+        )
         for _ in range(cycle_num):
             for t in range(cycle_period):
                 num = 0
@@ -88,7 +118,7 @@ def workload_2(config: dict):
         peak_period = peak_interval * (peak_times - 1) + peak_times
         for _ in range(cycle_num):
             for t in range(T):
-                if t >= start and t < start + peak_period and ((t-start) % (peak_interval + 1) == 0):
+                if t >= start and t < start + peak_period and ((t - start) % (peak_interval + 1) == 0):
                     arrival_invokes.append(concurrency)
                 else:
                     arrival_invokes.append(0)
@@ -145,13 +175,14 @@ def skew_split_one_min_load(number: int):
             bins[np.random.randint(0, len(bins))] += 1
     return bins.tolist()
 
+
 def evenally_split_one_min_load(number: int):
     # Generate 59 random numbers between 1 and total_number - 1
     random_points = [random.randint(0, number) for _ in range(59)]
     # Sort the random points and add 0 at the beginning and total_number at the end
     edges = [0] + sorted(random_points) + [number]
     # Calculate the differences between consecutive numbers to get the bin sizes
-    bins = [edges[i+1] - edges[i] for i in range(60)]
+    bins = [edges[i + 1] - edges[i] for i in range(60)]
     # Now bins contains 60 integer numbers which sum up to total_number
     return bins
 
@@ -163,9 +194,15 @@ def azure_workload(index: dict, dir: str):
     data = config.get_func_data()
     invokes = {}
     warmup = {}
-    upper_bound = {'chameleon': 35, 'image-processing': 30,
-                   'image-flip-rotate': 30, 'pyaes': 50,
-                   'crypto': 50, 'image-recognition': 15, 'video-processing': 15}
+    upper_bound = {
+        "chameleon": 35,
+        "image-processing": 30,
+        "image-flip-rotate": 30,
+        "pyaes": 50,
+        "crypto": 50,
+        "image-recognition": 15,
+        "video-processing": 15,
+    }
     for func_name in data:
         arrival_invokes = []
         row = data[func_name]
@@ -185,9 +222,9 @@ def azure_workload(index: dict, dir: str):
                 if func_name.startswith(name) and max(one_min_load) > upper:
                     one_min_load = evenally_split_one_min_load(left_invokes_per_min)
             # default max is 40
-            if not func_name.startswith('dynamic-html') and max(one_min_load) >= 40:
+            if not func_name.startswith("dynamic-html") and max(one_min_load) >= 40:
                 one_min_load = evenally_split_one_min_load(left_invokes_per_min)
-            assert(sum(one_min_load) == left_invokes_per_min and len(one_min_load) == 60)
+            assert sum(one_min_load) == left_invokes_per_min and len(one_min_load) == 60
             arrival_invokes += one_min_load
         assert len(arrival_invokes) == 1440 * 60
         warmup[func_name] = arrival_invokes[:warmup_sec]
@@ -243,20 +280,21 @@ def draw_workload(res: dict):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-w", "--workload", type=str, choices=["1", "2", "azure", "ali"], required=True, help="the workload to generate"
+        "-w", "--workload", type=str, choices=["1", "2", "azure", "ali", "func"], required=True, help="the workload to generate"
     )
     # /root/downloads/azurefunction-dataset2019
     parser.add_argument(
         "--dataset", type=str, help="if you want to generate trace of azure or alibaba, please specify dataset path"
     )
+    parser.add_argument("--iter", type=int, default=5, help="iteration for func workload")
     args = parser.parse_args()
 
     if args.workload == "1":
-        with open(f"workload{args.workload}.yml", "r") as f:
+        with open(f"workload-{args.workload}.yml", "r") as f:
             config = yaml.load(f, Loader=yaml.SafeLoader)
         res, warmup = workload_1(config)
     elif args.workload == "2":
-        with open(f"workload{args.workload}.yml", "r") as f:
+        with open(f"workload-{args.workload}.yml", "r") as f:
             config = yaml.load(f, Loader=yaml.SafeLoader)
         res, warmup = workload_2(config)
     elif args.workload == "azure":
@@ -270,7 +308,6 @@ if __name__ == "__main__":
             "image-processing": 5474,
             "image-recognition": 6738,
             "crypto": 650,
-
             "image-flip-rotate_1": 15961,
             "video-processing_1": 26045,
             "chameleon_1": 3840,
@@ -278,7 +315,6 @@ if __name__ == "__main__":
             "image-processing_1": 12272,
             "image-recognition_1": 33781,
             "crypto_1": 11431,
-
             "dynamic-html_2": 19813,
             "image-flip-rotate_2": 8670,
             "video-processing_2": 36225,
@@ -301,7 +337,6 @@ if __name__ == "__main__":
             "image-processing": "f43c6f855fce936da9177b65dfc67ef579edf77e",
             "image-recognition": "9cdb9644ccd8e9a99f4d95c7a3e4bdebb181e717",
             "crypto": "bfe1ad9927f9fbcc1b9989d7fc82ca92fabfc6a4",
-
             "dynamic-html_1": "97256a15f348b0350a93129691ebdafd14227c9d",
             "image-flip-rotate_1": "20952e985be6abf488a639a189491c8d4da36849",
             "video-processing_1": "6f8d9ac59bfa8eff8c53ddc83ad161b5372f14ef",
@@ -310,8 +345,6 @@ if __name__ == "__main__":
             "image-processing_1": "2e8773e5d82ab7e1da7f937e2e4f472c36e0bca8",
             "image-recognition_1": "e3caff0e323e3d0835838826c336d5fc2fb08653",
             "crypto_1": "c5e35a591b9915b413944fa520c63c7d62433d6a",
-
-            
             "dynamic-html_2": "e97e7d5d66536d0e5c854a501951ee4e0104a228",
             "image-flip-rotate_2": "36cc3d741b86ad4298c3cdc279ff07f01298f5d9",
             "video-processing_2": "616877714f984e3cf777ee77829c3ebe1304c8a2",
@@ -320,12 +353,15 @@ if __name__ == "__main__":
             "image-processing_2": "6d8d38f8d7956864f25f428d349a0c94bff3ce14",
             "image-recognition_2": "7c1846e2a724b584e8a2fcc182a24f47074c7ed6",
             "crypto_2": "c095d9e0c27a664d6902aa2fd6f538ec3ba8894a",
-
             # a5d16f04c764b7bd3c5bb36d2ae74e96bf7d126c
             # 663e9d923bb282b4624f45707582ff2e33666a1b
             # 6f8d9ac59bfa8eff8c53ddc83ad161b5372f14ef
         }
         res, warmup = ali_scalr_workload(index, args.dataset)
+    elif args.workload == "func":
+        with open(f"workload-{args.workload}.yml", "r") as f:
+            config = yaml.load(f, Loader=yaml.SafeLoader)
+        res, warmup = functional_workload(config, args.iter)
     else:
         raise Exception(f"unknown workload args {args.workload}")
 

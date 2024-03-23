@@ -6,10 +6,20 @@ import cv2
 SCRIPT_DIR = path.abspath(path.join(path.dirname(__file__)))
 VIDEO_DIR = path.join(SCRIPT_DIR, 'video')
 VIDEO_PATH = path.join(VIDEO_DIR, 'sample-3s.mp4')
-OUTPUT_PATH = path.join('/tmp', 'sample-gray.mp4')
+OUTPUT_PATH = path.join('/run', 'sample-gray.mp4')
 
 def handle(event, context):
+    try:
+        req = json.loads(event.body.decode())
+    except Exception as _:
+        video_id = 0
+    else:
+        video_id = req.get('video_id', 0)
     start = time()
+    if video_id == 0:
+        VIDEO_PATH = path.join(VIDEO_DIR, 'sample-3s.mp4')
+    else:
+        VIDEO_PATH = path.join(VIDEO_DIR, 'sample-6s.mp4')
     video = cv2.VideoCapture(VIDEO_PATH)
 
     width = int(video.get(3))

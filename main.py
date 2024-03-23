@@ -30,7 +30,8 @@ if __name__ == "__main__":
     with open("warmup.json", "r") as f:
         warmup = json.load(f)
 
-    test_driver.warmup(warmup, config["functions"])
+    if len(warmup) != 0:
+        test_driver.warmup(warmup, config["functions"])
     try:
         test_driver.cleanup_metric()
     except Exception as e:

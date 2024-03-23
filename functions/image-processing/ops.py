@@ -2,7 +2,7 @@ from os import path
 from PIL import Image, ImageFilter
 
 SCRIPT_DIR = path.abspath(path.join(path.dirname(__file__)))
-TMP = '/tmp/'
+TMP = '/run/'
 
 
 def flip(image, file_name):

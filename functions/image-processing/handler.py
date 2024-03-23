@@ -1,6 +1,7 @@
 from os import path
 from time import time
 from PIL import Image
+import json
 
 from .ops import *
 
@@ -10,7 +11,17 @@ IMAGE_PATH = path.join(IMAGE_DIR, 'image.jpg')
 IMAGE_NAME = 'image.jpg'
 
 def handle(event, context):
+    try:
+        req = json.loads(event.body.decode())
+    except Exception as _:
+        image_id = 0
+    else:
+        image_id = req.get('image_id', 0)
     start = time()
+    if image_id == 0:
+        IMAGE_PATH = path.join(IMAGE_DIR, 'image.jpg')
+    else:
+        IMAGE_PATH = path.join(IMAGE_DIR, 'image2.jpg')
     path_list = []
     with Image.open(IMAGE_PATH) as image:
         path_list += flip(image, IMAGE_NAME)

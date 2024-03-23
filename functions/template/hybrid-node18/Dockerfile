@@ -12,7 +12,7 @@ RUN apt-get -qy update \
     && rm -rf /var/lib/apt/lists/*
 
 # Add non root user
-RUN addgroup --system app && adduser app --system --ingroup app && chmod 777 /tmp
+RUN addgroup --system app && adduser app --system --ingroup app && chmod 777 /run
 
 USER app
 
