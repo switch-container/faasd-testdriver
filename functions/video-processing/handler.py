@@ -33,7 +33,7 @@ def handle(event, context):
 
         if ret:
             gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            tmp_file_path = path.join(VIDEO_DIR, 'tmp.jpg')
+            tmp_file_path = path.join('/run', 'tmp.jpg')
             cv2.imwrite(tmp_file_path, gray_frame)
             gray_frame = cv2.imread(tmp_file_path)
             out.write(gray_frame)

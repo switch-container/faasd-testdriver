@@ -9,6 +9,7 @@ from time import time
 import random
 from typing import Dict, List
 import logging
+import os
 
 
 class TestDriver:
@@ -59,6 +60,7 @@ class TestDriver:
             raise RuntimeError(f"Invalid response from {lambda_name}")
         res = {"e2e_latency": e2e_latency, "latency": latency, "data": data, "retry_count": retry_count}
         logging.info("%s %s", lambda_name, {"e2e_latency": e2e_latency, "latency": latency, "retry_count": retry_count})
+        # os.system("echo 3 > /proc/sys/vm/drop_caches")
         return res
 
     def warmup(self, warmup: Dict[str, List[int]], functions: dict):

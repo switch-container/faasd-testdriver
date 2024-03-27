@@ -12,7 +12,8 @@ RUN apt-get -qy update \
     && rm -rf /var/lib/apt/lists/*
 
 # Add non root user
-RUN addgroup --system app && adduser app --system --ingroup app && chmod 777 /run
+# chmod /tmp for watchdog to add .lock
+RUN addgroup --system app && adduser app --system --ingroup app && chmod 777 /run && chmod 777 /tmp
 
 USER app
 
