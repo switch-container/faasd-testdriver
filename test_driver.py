@@ -60,7 +60,13 @@ class TestDriver:
             raise RuntimeError(f"Invalid response from {lambda_name}")
         res = {"e2e_latency": e2e_latency, "latency": latency, "data": data, "retry_count": retry_count}
         logging.info("%s %s", lambda_name, {"e2e_latency": e2e_latency, "latency": latency, "retry_count": retry_count})
-        # os.system("echo 3 > /proc/sys/vm/drop_caches")
+        # response = self.http.get(
+        #     f"{self.gateway}/danger/kill",
+        #     timeout=self.timeout,
+        # )
+        # if response.status_code != 200:
+        #     raise RuntimeError(f"kill instance error: [{response.status_code} {response.reason}] {response.text}")
+        # os.system("sleep 1 && echo 1 > /proc/sys/vm/drop_caches")
         return res
 
     def warmup(self, warmup: Dict[str, List[int]], functions: dict):

@@ -34,13 +34,13 @@ functions:
     request_body:
   json-serde:
     request_body:
-      name: 3
+      name: "3"
   js-json-serde:
     request_body:
-      name: 5
+      name: "5"
   pagerank:
     request_body:
-      size: 90000
+      size: 75000
       out: 12
 
   chameleon_1:

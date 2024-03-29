@@ -23,8 +23,7 @@ def handle(event, context):
     file_path = path.join(FILES_DIR, f'{name}.json')
     f = open(file_path, 'r')
     j = json.load(f)
-    # str_j = json.dumps(j, indent=4)
-    json.dump(j, open("4-1.json", "w"), indent=4)
+    str_j = json.dumps(j, indent=4)
 
 
     return {
