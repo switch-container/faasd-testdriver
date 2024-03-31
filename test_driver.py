@@ -117,6 +117,7 @@ class TestDriver:
             jobs[func] = func_jobs
         gevent.joinall(sum(jobs.values(), []), timeout=int(total_timeout * 1.2))
 
+    # return string
     def get_metrics(self):
         try:
             response = self.http.get(

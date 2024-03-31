@@ -48,45 +48,48 @@ def workload_1(config: dict):
     # each funtion will busrt in one peek_period in one cycle_period
     # so for workload 1: the cycle_period should > faasd containerd cache duration
     functions = config["functions"]
-    cycle_period = config.get("cycle_period", 90)
     cycle_num = config.get("cycle_num", 6)
-    func_period = cycle_period // len(functions)
     warmup_cycle = config.get("warmup_cycle", 2)
     assert warmup_cycle <= cycle_num
-    print(f"cycle_period {cycle_period} func_period {func_period} cycle_num {cycle_num} warmup cycle {warmup_cycle}")
+
+    T = sum([functions[func_name]["last"] for func_name in functions])
+
+    print(f"one cycle period {T} cycle_num {cycle_num} warmup cycle {warmup_cycle}")
 
     peak_start_array = list(range(len(functions)))
     random.shuffle(peak_start_array)
 
     res = {}  # this is real workload that we need test
     warmup = {}  # this is the warmup worload
+    start = 0
     for func_name in functions:
         # run multiple instance in 10s
         arrival_invokes = []
         func = functions[func_name]
-        peek_concurrency = func.get("max_concurrency", 40)
-        peak_times = func["peak_times"]
+        concurrency = func["max_concurrency"]
         # we should burst request in exec_time_hint to prevent reuse
-        peak_start = peak_start_array.pop(0) * func_period
+        peak_times = func["peak_times"]
         peak_interval = func.get("interval", 0)
-        peak_period = min(func_period, peak_times + peak_interval * (peak_times - 1))
+        peak_period = peak_interval * (peak_times - 1) + peak_times
+        upper = 0
+        for _ in range(cycle_num):
+            for t in range(T):
+                num = 0
+                if t >= start and t < start + peak_period and ((t - start) % (peak_interval + 1) == 0):
+                    std = concurrency * 0.1
+                    std = max(math.ceil(std), 1)
+                    num = abs(random.normalvariate(concurrency, std))
+                    num = int(min(num, concurrency * 1.1))
+                    upper = max(upper, num)
+                arrival_invokes.append(num)
         print(
-            f"{func_name} peak start is at {peak_start} peek concurrency is {peek_concurrency} "
+            f"{func_name} peak start at {start} peek concurrency is {upper} "
             f"period is {peak_period} interval is {peak_interval}"
         )
-        for _ in range(cycle_num):
-            for t in range(cycle_period):
-                num = 0
-                if t >= peak_start and t < math.ceil(peak_start + peak_period) and ((t - peak_start) % (peak_interval + 1) == 0):
-                    std = peek_concurrency * 0.1
-                    std = max(math.ceil(std), 1)
-
-                    num = abs(random.normalvariate(peek_concurrency, std))
-                    num = min(int(num), 300)
-                arrival_invokes.append(num)
-        assert len(arrival_invokes) == cycle_period * cycle_num
-        res[func_name] = arrival_invokes
-        warmup[func_name] = arrival_invokes[: cycle_period * warmup_cycle]
+        assert len(arrival_invokes) == T * cycle_num
+        warmup[func_name] = arrival_invokes[: T * warmup_cycle]
+        res[func_name] = arrival_invokes[T * warmup_cycle:]
+        start += func["last"]
     return res, warmup
 
 
@@ -123,9 +126,9 @@ def workload_2(config: dict):
                 else:
                     arrival_invokes.append(0)
         assert len(arrival_invokes) == T * cycle_num
-        res[func_name] = arrival_invokes
-        start += functions[func_name]["last"]
         warmup[func_name] = arrival_invokes[: T * warmup_cycle]
+        res[func_name] = arrival_invokes[T * warmup_cycle:]
+        start += functions[func_name]["last"]
     return res, warmup
 
 

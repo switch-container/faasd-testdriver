@@ -33,6 +33,10 @@ if __name__ == "__main__":
     if len(warmup) != 0:
         test_driver.warmup(warmup, config["functions"])
     try:
+        metric_text = test_driver.get_metrics()
+        if metric_text is not None:
+            with open("/run/warmup_metrics.output", "w") as f:
+                f.write(metric_text)
         test_driver.cleanup_metric()
     except Exception as e:
         logging.error(f"cleanup metric after warmup failed: {e}")

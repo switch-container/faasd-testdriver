@@ -43,10 +43,10 @@ functions:
       size: 75000
       out: 12
 
-  chameleon_1:
-    request_body:
-      num_of_rows: 300
-      num_of_cols: 500
+  # chameleon_1:
+  #   request_body:
+  #     num_of_rows: 300
+  #     num_of_cols: 500
   pyaes_1:
     request_body:
       length_of_message: 1200
@@ -67,11 +67,21 @@ functions:
       num_of_iterations: 18000
   image-flip-rotate_1:
     request_body:
-
-  chameleon_2:
+  json-serde_1:
     request_body:
-      num_of_rows: 350
-      num_of_cols: 450
+      name: "4"
+  js-json-serde_1:
+    request_body:
+      name: "5"
+  pagerank_1:
+    request_body:
+      size: 90000
+      out: 14
+
+  # chameleon_2:
+  #   request_body:
+  #     num_of_rows: 350
+  #     num_of_cols: 450
   pyaes_2:
     request_body:
       length_of_message: 1500
@@ -92,3 +102,13 @@ functions:
       num_of_iterations: 15000
   image-flip-rotate_2:
     request_body:
+  json-serde_2:
+    request_body:
+      name: "5"
+  js-json-serde_2:
+    request_body:
+      name: "5"
+  pagerank_2:
+    request_body:
+      size: 10000
+      out: 12

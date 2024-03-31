@@ -1,17 +1,23 @@
 functions:
-  chameleon:
-    last: 3
+  # chameleon:
+  #   last: 3
   pyaes:
-    last: 2
+    last: 4
   dynamic-html:
     last: 2
   image-processing:
-    last: 3
+    last: 5
   image-recognition:
-    last: 3
+    last: 5
   video-processing:
-    last: 4
+    last: 5
   crypto:
-    last: 2
+    last: 3
   image-flip-rotate:
+    last: 4
+  json-serde:
+    last: 3
+  js-json-serde:
+    last: 3
+  pagerank:
     last: 4

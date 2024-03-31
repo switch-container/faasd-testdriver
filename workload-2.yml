@@ -1,10 +1,10 @@
-cycle_num: 15
+cycle_num: 12
 faasd_gc_criterion: 180
 warmup_cycle: 2
 functions:
   chameleon:
-    max_concurrency: 30
-    peak_times: 2
+    max_concurrency: 15
+    peak_times: 1
     last: 10
   dynamic-html:
     max_concurrency: 200
@@ -12,13 +12,13 @@ functions:
     last: 4
   image-processing:
     max_concurrency: 16
-    peak_times: 3
+    peak_times: 2
     interval: 1
     last: 13
   image-recognition:
-    max_concurrency: 7
-    peak_times: 3
-    interva: 1
+    max_concurrency: 4
+    peak_times: 2
+    interval: 10
     last: 30
   video-processing:
     max_concurrency: 12
@@ -26,14 +26,26 @@ functions:
     interval: 1
     last: 23
   image-flip-rotate:
-    max_concurrency: 16
-    peak_times: 3
+    max_concurrency: 20
+    peak_times: 2
     last: 15
   crypto:
-    max_concurrency: 13
-    peak_times: 2
+    max_concurrency: 16
+    peak_times: 1
     last: 15
   pyaes:
-    max_concurrency: 10
+    max_concurrency: 14
     peak_times: 2
+    last: 15
+  json-serde:
+    max_concurrency: 25
+    peak_times: 1
+    last: 10
+  js-json-serde:
+    max_concurrency: 25
+    peak_times: 1
+    last: 10
+  pagerank:
+    max_concurrency: 25
+    peak_times: 1
     last: 15

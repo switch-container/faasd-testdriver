@@ -1,36 +1,54 @@
-peek_period: 10
-cycle_period: 90
-cycle_num: 20
+cycle_num: 12
 warmup_cycle: 2
 functions:
   chameleon:
     max_concurrency: 25
-    peak_times: 2
+    peak_times: 1
     interval: 1
+    last: 10
   pyaes:
-    max_concurrency: 20
+    max_concurrency: 15
     peak_times: 2
     interval: 1
+    last: 15
   dynamic-html:
     max_concurrency: 200
-    peak_times: 2
+    peak_times: 1
+    last: 4
   image-processing:
     max_concurrency: 9
     peak_times: 3
     interval: 1
+    last: 15
   image-recognition:
-    max_concurrency: 5
+    max_concurrency: 4
     peak_times: 3
-    interval: 1
+    interval: 5
+    last: 20
   video-processing:
     max_concurrency: 8
     peak_times: 3
     interval: 1
+    last: 20
   crypto:
-    max_concurrency: 30
+    max_concurrency: 15
     peak_times: 2
     interval: 1
+    last: 12
   image-flip-rotate:
-    max_concurrency: 11
-    peak_times: 3
+    max_concurrency: 15
+    peak_times: 2
     interval: 1
+    last: 15
+  json-serde:
+    max_concurrency: 20
+    peak_times: 1
+    last: 10
+  js-json-serde:
+    max_concurrency: 20
+    peak_times: 1
+    last: 10
+  pagerank:
+    max_concurrency: 15
+    peak_times: 2
+    last: 12
