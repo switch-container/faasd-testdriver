@@ -30,8 +30,10 @@ if __name__ == "__main__":
     with open("warmup.json", "r") as f:
         warmup = json.load(f)
 
+    failed_num = 0
+    succeed_num = 0
     if len(warmup) != 0:
-        test_driver.warmup(warmup, config["functions"])
+        failed_num, succeed_num = test_driver.warmup(warmup, config["functions"])
     try:
         metric_text = test_driver.get_metrics()
         if metric_text is not None:
@@ -41,5 +43,6 @@ if __name__ == "__main__":
     except Exception as e:
         logging.error(f"cleanup metric after warmup failed: {e}")
     else:
-        test_driver.test(workloads, config["functions"])
-        logging.info("test succeed and finish!")
+        logging.info(f"warm up finished: failed num {failed_num}, succeed num {succeed_num} !")
+        failed_num, succeed_num = test_driver.test(workloads, config["functions"])
+        logging.info(f"test succeed and finish: failed num {failed_num} succeed_num {succeed_num} !")

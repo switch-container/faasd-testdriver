@@ -70,6 +70,9 @@ class TestDriver:
         return res
 
     def warmup(self, warmup: Dict[str, List[int]], functions: dict):
+        """
+        Return: (failed_nr, succeed_nr)
+        """
         logging.info("START warmup...")
         jobs = {}
         total_timeout = 0
@@ -86,7 +89,14 @@ class TestDriver:
                     g = gevent.spawn_later(t + random.random(), self.invoke, func, request_body)
                     func_jobs.append(g)
             jobs[func] = func_jobs
-        gevent.joinall(sum(jobs.values(), []), timeout=int(total_timeout * 1.2))
+        result = gevent.joinall(sum(jobs.values(), []), timeout=int(total_timeout * 1.2))
+        failed_nr, succeed_nr = 0, 0
+        for g in result:
+            if g.successful():
+                succeed_nr += 1
+            else:
+                failed_nr += 1
+        return failed_nr, succeed_nr
 
     def cleanup_metric(self):
         response = requests.delete(
@@ -98,7 +108,9 @@ class TestDriver:
             raise RuntimeError(f"[{response.status_code} {response.reason}] {response.text}")
 
     def test(self, workloads: Dict[str, List[int]], functions: dict):
-        """Test functions"""
+        """Test functions
+        Return: (failed_nr, succeed_nr)
+        """
         logging.info("START test...")
         jobs = {}
         total_timeout = 0
@@ -115,7 +127,14 @@ class TestDriver:
                     g = gevent.spawn_later(t + random.random(), self.invoke, func, request_body)
                     func_jobs.append(g)
             jobs[func] = func_jobs
-        gevent.joinall(sum(jobs.values(), []), timeout=int(total_timeout * 1.2))
+        result = gevent.joinall(sum(jobs.values(), []), timeout=int(total_timeout * 1.2))
+        failed_nr, succeed_nr = 0, 0
+        for g in result:
+            if g.successful():
+                succeed_nr += 1
+            else:
+                failed_nr += 1
+        return failed_nr, succeed_nr
 
     # return string
     def get_metrics(self):

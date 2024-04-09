@@ -155,15 +155,15 @@ class AzureTraceConfig:
         for func_name, row_id in self.idx.items():
             row = self.df.iloc[row_id]
             data[func_name] = row
-            print(
-                f"{func_name} per minute max: {row['max']} min: {row['min']} avg: {row['avg']:.3f} avg_dur: {row['Average_x']} ms"
-            )
+            # print(
+            #     f"{func_name} per minute max: {row['max']} min: {row['min']} avg: {row['avg']:.3f} avg_dur: {row['Average_x']} ms"
+            # )
         return data
 
 
-def skew_split_one_min_load(number: int):
+def skew_split_one_min_load(number: int, skew=0.1):
     # Generate more samples than needed from a Poisson distribution with a very small lambda
-    samples = np.random.poisson(0.1, 600)
+    samples = np.random.poisson(skew, 600)
     # Take the first 60 samples
     bins = samples[:60]
     # If the sum is 0 (unlikely, but just to be safe), set one bin to total_number
@@ -177,6 +177,14 @@ def skew_split_one_min_load(number: int):
         while bins.sum() < number:
             bins[np.random.randint(0, len(bins))] += 1
     return bins.tolist()
+
+def add_upper_bound_constraint(bins: list, upper_bound: int):
+    for idx in range(len(bins)):
+        while bins[idx] > upper_bound:
+            lowest_idx = bins.index(min(bins))
+            bins[idx] -= 1
+            bins[lowest_idx] += 1
+    return bins
 
 
 def evenally_split_one_min_load(number: int):
@@ -198,40 +206,46 @@ def azure_workload(index: dict, dir: str):
     invokes = {}
     warmup = {}
     upper_bound = {
-        "chameleon": 35,
-        "image-processing": 30,
-        "image-flip-rotate": 30,
-        "pyaes": 50,
-        "crypto": 50,
-        "image-recognition": 15,
-        "video-processing": 15,
+        "chameleon": 17,
+        "image-processing": 12,
+        "image-flip-rotate": 15,
+        "pyaes": 18,
+        "crypto": 20,
+        "image-recognition": 7,
+        "video-processing": 10,
+        "dynamic-html": 80,
+        "pagerank": 18,
+        "json-serde": 25,
+        "js-json-serde": 25,
     }
     for func_name in data:
         arrival_invokes = []
         row = data[func_name]
-        for m in range(1, 1441):
+        skew_prob = 0.4 if '_' not in func_name else 0.2
+        for m in range(1, 61):
             left_invokes_per_min = int(row[str(m)])
             # special cases for 0 requests
             if left_invokes_per_min == 0:
                 arrival_invokes += [0] * 60
                 continue
-            # 20 % generate some skew load
-            if random.random() < 0.8:
+            # 40 % generate some skew load
+            if random.random() < (1 - skew_prob) and "dynamic-html" not in func_name:
                 one_min_load = evenally_split_one_min_load(left_invokes_per_min)
             else:
                 one_min_load = skew_split_one_min_load(left_invokes_per_min)
+                service_name = func_name.rsplit('_', 1)[0]
+                one_min_load = add_upper_bound_constraint(one_min_load, upper_bound[service_name])
             # do not use too skew workload
             for name, upper in upper_bound.items():
                 if func_name.startswith(name) and max(one_min_load) > upper:
                     one_min_load = evenally_split_one_min_load(left_invokes_per_min)
-            # default max is 40
-            if not func_name.startswith("dynamic-html") and max(one_min_load) >= 40:
-                one_min_load = evenally_split_one_min_load(left_invokes_per_min)
             assert sum(one_min_load) == left_invokes_per_min and len(one_min_load) == 60
             arrival_invokes += one_min_load
-        assert len(arrival_invokes) == 1440 * 60
+        assert len(arrival_invokes) == 60 * 60
         warmup[func_name] = arrival_invokes[:warmup_sec]
         invokes[func_name] = arrival_invokes[warmup_sec:total_sec]
+        print(f"{func_name} skew {skew_prob:.1%} warmup: max {max(warmup[func_name])} avg {np.mean(warmup[func_name]):.2f}"
+            f" workload: max {max(invokes[func_name])} avg {np.mean(invokes[func_name]):.2f}")
     return invokes, warmup
 
 
@@ -271,6 +285,71 @@ def ali_scalr_workload(index: dict, dir: str):
         print(f"{func_name} per minute max: {largest_sum} min: {smallest_sum} avg: {average_sum:.3f}")
     return invokes, warmup
 
+def get_huawei_at(dir:str, idx, day, start_hour, off=0):
+    trace_filepath = path.join(dir, f"day_{day:02}.csv")
+    df = pd.read_csv(trace_filepath)
+    tmp = df.T
+    tmp = tmp.fillna(0).iloc[2:]
+    start_min = start_hour * 60 - off
+    return tmp.iloc[idx, start_min:start_min + 60]
+
+def huawei_workload(index: dict, dir: str):
+    upper_bound = {
+        "chameleon": 17,
+        "image-processing": 12,
+        "image-flip-rotate": 15,
+        "pyaes": 18,
+        "crypto": 20,
+        "image-recognition": 7,
+        "video-processing": 10,
+        "dynamic-html": 80,
+        "pagerank": 18,
+        "json-serde": 25,
+        "js-json-serde": 25,
+      }
+    invokes = {}
+    warmup = {}
+    for func_name in index:
+        arrival_invokes = []
+        if len(index[func_name]) == 4:
+            id, day, start_hour, off = index[func_name]
+        else:
+            id, day, start_hour = index[func_name]
+            off = 0
+        skew_prob = 0.4 if '_' not in func_name else 0.1
+        trace = get_huawei_at(dir, id, day, start_hour, off)
+        max_val_of_trace = max(trace)
+        assert trace.shape == (60, )
+        for t in range(0, 60):
+            left_invokes_per_min = trace.iloc[t]
+            if not isinstance(left_invokes_per_min, int):
+                left_invokes_per_min = int(left_invokes_per_min + 1e-3)
+            # special cases for 0 requests
+            if left_invokes_per_min == 0:
+                arrival_invokes += [0] * 60
+                continue
+            if '_' not in func_name and max_val_of_trace == left_invokes_per_min:
+                one_min_load = skew_split_one_min_load(left_invokes_per_min)
+                service_name = func_name.rsplit('_', 1)[0]
+                one_min_load = add_upper_bound_constraint(one_min_load, upper_bound[service_name])
+            elif random.random() < skew_prob:
+                one_min_load = skew_split_one_min_load(left_invokes_per_min)
+                service_name = func_name.rsplit('_', 1)[0]
+                one_min_load = add_upper_bound_constraint(one_min_load, upper_bound[service_name])
+            else:
+                one_min_load = evenally_split_one_min_load(left_invokes_per_min)
+            assert sum(one_min_load) == left_invokes_per_min and len(one_min_load) == 60
+            arrival_invokes += one_min_load
+        assert len(arrival_invokes) == 60 * 60
+        warmup[func_name] = arrival_invokes[:5*60]
+        invokes[func_name] = arrival_invokes[5*60:]
+        warmup_max = max(warmup[func_name])
+        warmup_total = sum(warmup[func_name])
+        invoke_max = max(invokes[func_name])
+        invoke_total = sum(invokes[func_name])
+        print(f"{func_name} skew {skew_prob:.1%} off {off} warmup max {warmup_max} total {warmup_total}, invokes max {invoke_max} total {invoke_total}")
+    return invokes, warmup
+
 
 def draw_workload(res: dict):
     fig, ax = plt.subplots()
@@ -283,7 +362,7 @@ def draw_workload(res: dict):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-w", "--workload", type=str, choices=["1", "2", "azure", "ali", "func"], required=True, help="the workload to generate"
+        "-w", "--workload", type=str, choices=["1", "2", "azure", "ali", "huawei", "func"], required=True, help="the workload to generate"
     )
     # /root/downloads/azurefunction-dataset2019
     parser.add_argument(
@@ -304,28 +383,36 @@ if __name__ == "__main__":
         if args.dataset is None or len(args.dataset) == 0:
             parser.error("-w/--workload azure requires --dataset")
         index = {
-            "image-flip-rotate": 13629,
-            "video-processing": 44699,
-            "chameleon": 14065,
-            "pyaes": 31057,
-            "image-processing": 5474,
-            "image-recognition": 6738,
-            "crypto": 650,
-            "image-flip-rotate_1": 15961,
-            "video-processing_1": 26045,
-            "chameleon_1": 3840,
-            "pyaes_1": 14931,
-            "image-processing_1": 12272,
-            "image-recognition_1": 33781,
-            "crypto_1": 11431,
-            "dynamic-html_2": 19813,
-            "image-flip-rotate_2": 8670,
-            "video-processing_2": 36225,
-            "chameleon_2": 7659,
-            "pyaes_2": 13628,
-            "image-processing_2": 13641,
-            "image-recognition_2": 8263,
-            "crypto_2": 11431,
+            "image-flip-rotate": 6669,
+            "video-processing": 37121,
+            "chameleon": 10982,
+            "pyaes": 2400,
+            "image-processing": 14876,
+            "image-recognition": 28412,
+            "crypto": 28418,
+            "json-serde": 39078,
+            "pagerank": 44914,
+            "js-json-serde": 26387,
+            "dynamic-html": 19236,
+
+            "image-flip-rotate_1": 40905,
+            "video-processing_1": 31485,
+            # "chameleon_1": 3840,
+            "pyaes_1": 11187,
+            "image-processing_1": 5195,
+            "image-recognition_1": 35943,
+            "crypto_1": 8849,
+            "pagerank_1": 35278,
+            "dynamic-html_1": 4756,
+
+            "image-flip-rotate_2": 36112,
+            "video-processing_2": 23833,
+            # "chameleon_2": 7659,
+            "pyaes_2": 8997,
+            "image-processing_2": 29974,
+            "image-recognition_2": 15085,
+            "crypto_2": 25780,
+            "dynamic-html_2": 3237,
         }
         res, warmup = azure_workload(index, args.dataset)
     elif args.workload == "ali":
@@ -361,6 +448,43 @@ if __name__ == "__main__":
             # 6f8d9ac59bfa8eff8c53ddc83ad161b5372f14ef
         }
         res, warmup = ali_scalr_workload(index, args.dataset)
+    elif args.workload == "huawei":
+        if args.dataset is None or len(args.dataset) == 0:
+            parser.error("-w/--workload ali requires --dataset")
+        index = {
+            # id, day, start, offset
+            "image-flip-rotate": (372, 21, 16, -4),
+            "video-processing": (372, 1, 17, 2),
+            "chameleon": (50, 19, 4),
+            "image-recognition": (87, 23, 20),
+            "pyaes": (80, 17, 19),
+            "image-processing": (372, 1, 15),
+            "json-serde": (397, 23, 5),
+            "crypto": (372, 0, 15, -2),
+            "pagerank": (915, 19, 10, -7),
+            "js-json-serde": (200, 19, 1),
+            "dynamic-html": (2976, 15, 1),
+            
+            "image-flip-rotate_1": (181, 0, 16),
+            "video-processing_1": (37, 1, 0),
+            # "chameleon_1": 3840,
+            "pyaes_1": (36, 0, 5),
+            "image-processing_1": (36, 0, 2),
+            "image-recognition_1": (44, 0, 5),
+            "crypto_1": (26, 1, 3),
+            "pagerank_1": (472, 0, 23),
+            "dynamic-html_1": (38, 1, 9),
+            
+            "image-flip-rotate_2": (551, 1, 13),
+            "video-processing_2": (425, 1, 18),
+            # "chameleon_2": 7659,
+            "pyaes_2": (181, 0, 1),
+            "image-processing_2": (37, 0, 0),
+            "image-recognition_2": (44, 3, 2),
+            "crypto_2": (181, 0, 7),
+            "dynamic-html_2": (38, 0, 10),
+        }
+        res, warmup = huawei_workload(index, args.dataset)
     elif args.workload == "func":
         with open(f"workload-{args.workload}.yml", "r") as f:
             config = yaml.load(f, Loader=yaml.SafeLoader)

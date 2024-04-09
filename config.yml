@@ -43,10 +43,10 @@ functions:
       size: 75000
       out: 12
 
-  # chameleon_1:
-  #   request_body:
-  #     num_of_rows: 300
-  #     num_of_cols: 500
+  chameleon_1:
+    request_body:
+      num_of_rows: 300
+      num_of_cols: 500
   pyaes_1:
     request_body:
       length_of_message: 1200
@@ -78,10 +78,10 @@ functions:
       size: 90000
       out: 14
 
-  # chameleon_2:
-  #   request_body:
-  #     num_of_rows: 350
-  #     num_of_cols: 450
+  chameleon_2:
+    request_body:
+      num_of_rows: 350
+      num_of_cols: 450
   pyaes_2:
     request_body:
       length_of_message: 1500
